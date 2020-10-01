@@ -1,5 +1,8 @@
-import FiniteStateMachine
-import Tokens
+from FiniteStateMachine import *
+from Tokens import *
+from CSharpLangDefs import *
+
+DebugRecognizerNames = True
 
 Token = TokenType()
 
@@ -18,164 +21,259 @@ BooleanLiteral = Literal.BooleanLiteral
 StringLiteral = CharacterLiteral.StringLiteral
 IntegerLiteral = NumericLiteral.IntegerLiteral
 
+# RECOGNITION FUNCTIONS
 
-Handlers = Map()
+# todo:
+# ternary operator
 
-EndStates = [
-    # FSMState(Token.Comment),
-    # FSMState(Token.CommentMultiline),
-    # FSMState(Token.Keyword),
-    # FSMState(Token.Literal)
-]
+def isMultilineCommentStart(str):
+    return str.startswith('/*')
 
+def isMultilineCommentEnd(str):
+    return str.startswith('*/')
 
-# C# Language Definitions
+def isMultilineComment(str):
+    if DebugRecognizerNames:
+        print("isMultilineComment")
+    if isMultilineCommentStart(str):
+        pos=2
+        while pos < len(str) and not isMultilineCommentEnd(str[pos:]):
+            pos+=1
+        if pos < len(str)-1 and isMultilineCommentEnded(str[pos:]):
+            return pos+2, Token.CommentMultiline, str[:pos+2]
+        return pos, Token.UnfinishedComment, str
+    return 0, None, None
 
-ArithmeticOperators = ['+','-','*','/','%']
-LogicalOperators = ['||', '&&', '!']
-RelationalOperators = ['>=', '<=', '==', '!=', '<', '>']
-AssignmentOperators = ['+=', '-=', '=']
-BitwiseOperators = ['&', '|', '~', '^', '>>', '<<']
-IncrementOperators=['++', '--']
-SpecialOperators=['is', 'sizeof', 'as', 'typeof', 'new', 'checked', 'unchecked', 'dot']
+def isCommentStart(str):
+    return str.startswith('//')
 
-# TERNARY OPERATOR
+def isLineEnd(str):
+    return str[0] == '\n'
 
-Operators = ArithmeticOperators + LogicalOperators + RelationalOperators + AssignmentOperators + BitwiseOperators + IncrementOperators + SpecialOperators
+def isComment(str):
+    if DebugRecognizerNames:
+        print("isComment")
+    if isCommentStart(str):
+        pos=2
+        while pos < len(str):
+            if isLineEnd(str[pos:]):
+                return pos+1, Token.Comment, str[:pos+1]
+            pos+=1
+    return 0, None, None
 
-Punctuators = [';', ':', ',', '.', '(', ')', '[', ']', '{', '}']
-
-
-
-def isCommentStarted(str):
-    return str[2:] if str.startswith('/*') else None
-
-def isCommentEnded(str):
-    return str[2:] if str.startswith('*/') else None
-
-def isLineEnded(str):
-    return str[1:] if str[0] == '\n' else None
+def isWhiteSpace(str):
+    if DebugRecognizerNames:
+        print("isWhiteSpace")
+    pos = 0
+    while pos < len(str):
+        if not str[pos].iswhitespace():
+            break
+        pos+=1
+    if pos == 0:
+        return 0, None, None
+    return pos, Token.Whitespace, str[:pos]
 
 def isOperator(str):
+    if DebugRecognizerNames:
+        print("isOperator")
     opers = [op for op in Operators if str.startswith(op)]
     opers.sort(key=lambda a: -len(a))
-    return str[len(opers[0]):] if len(opers) else None
+    if len(opers):
+        return len(opers[0]), Token.Operator, str[:len(opers[0])]
+    else:
+        return 0, None, None
 
 def isPunctuator(str):
-    return 1, Token.Punctuator, str[:1] if str[0] in Punctuators else 0, None, None
+    if DebugRecognizerNames:
+        print("isPunctuator")
+    if str[0] in Punctuators:
+        return 1, Token.Punctuator, str[:1]
+    else:
+        return 0, None, None
+
+def isKeyword(str):
+    if DebugRecognizerNames:
+        print("isKeyword")
+    for keyword in Keywords:
+        if str.startswith(keyword):
+            return len(keyword), Token.Keyword, str[:len(keyword)]
+    return 0, None, None
 
 def isIdentifier(str):
-    if isalpha(str[0]):
+    if DebugRecognizerNames:
+        print("isIdentifier")
+    if str[0] == '@':
+        size, token, str = isKeyword(str[1:])
+        if size != 0:
+            return size+1, Token.Identifier, str[:size+1]
+    if str[0].isalpha():
         pos = 0
-        while pos < len(str) and not isspace(str[pos]):
+        while pos < len(str) and not str[pos].isspace():
             pos+=1
         return pos, Token.Identifier, str[:pos]
     return 0, None, None
 
+class NumericLiteralFSM(FiniteStateMachine):
 
-# states_to_tokens = {}
-# states_to_tokens['s3'] = Token.Operator
-# states_to_tokens['comment_state'] = Token.Comment
-#
-# Handlers={}
-# Handlers['start_state'] = FSMHandler([('s2', isCommentStarted), ('s3', isOperator), ('s4', is)], 'start_state')
-# Handlers['s2'] = FSMHandler([('comment_state',isLineEnded), 's2')
-# Handlers['s4'] = FSMHandler([(),()])
+    pos = 0
 
+    def __init__(self):
+        super().__init__()
+        self.add_state('s0', self.s0_handler)
+        self.add_state('s1', self.s1_handler)
+        self.add_state('s2', self.s2_handler)
+        self.add_state('s3', self.s3_handler)
+        self.add_state('s4', self.s4_handler)
+        self.add_state('s5', self.s5_handler)
+        self.add_state('s6', self.s6_handler)
+        self.add_state('s7', self.s7_handler, True)
+        self.add_state('exit_state', self.exit_handler, True)
+        self.set_start('s0')
 
-def s0_handler(str):
-    if isdigit(str[pos]):
-        return 's1', str[1:]
-    return 'exit_state', str
+    def run(self, input):
+        return super().run(input), self.pos
 
-def s1_handler(str):
-    if isdigit(str[0]):
-        return 's1', str[1:]
-    if str[0] == '.':
-        return 's2', str[1:]
-    if str[0] == 'E' or str[0] == 'e':
-        return 's4', str[1:]
-    return 'exit_state', str
+    def s0_handler(self, str):
+        if str[self.pos].isdigit():
+            pos+=1
+            return 's1', str
+        return 'exit_state', str
 
-def s2_handler(str):
-    if isdigit(str[0]):
-        return 's3', str[1:]
-    return 'exit_state', str
+    def s1_handler(self, str):
+        if str[self.pos].isdigit():
+            pos+=1
+            return 's1', str
+        if str[self.pos] == '.':
+            pos+=1
+            return 's2', str
+        if str[self.pos] == 'E' or str[pos] == 'e':
+            pos+=1
+            return 's4', str
+        return 'exit_state', str
 
-def s3_handler(str):
-    if isdigit(str[0]):
-        return 's3', str[1:]
-    if str[0] == 'E' or str[0] == 'e':
-        return 's4', str[1:]
-    return 'exit_state', str
+    def s2_handler(self, str):
+        if str[self.pos].isdigit():
+            pos+=1
+            return 's3', str
+        return 'exit_state', str
 
-def s4_handler(str):
-    if str[0] == '+' or str[0] == '-':
-        return 's5', str[1:]
-    if isdigit(str[0]):
-        return 's6', str[1:]
-    return 'exit_state', str
+    def s3_handler(self, str):
+        if str[self.pos].isdigit():
+            pos+=1
+            return 's3', str
+        if str[self.pos] == 'E' or str[self.pos] == 'e':
+            pos+=1
+            return 's4', str
+        return 'exit_state', str
 
-def s5_handler(str):
-    if isdigit(str[0]):
-        return 's6', str[1:]
-    return 'exit_state', str
+    def s4_handler(self, str):
+        if str[self.pos] == '+' or str[self.pos] == '-':
+            pos+=1
+            return 's5', str
+        if str[self.pos].isdigit():
+            pos+=1
+            return 's6', str
+        return 'exit_state', str
 
-def s6_handler(str):
-    if isdigit(str[0]):
-        return 's6', str[1:]
-    return 's7', str[1:]
+    def s5_handler(self, str):
+        if str[self.pos].isdigit():
+            pos+=1
+            return 's6', str
+        return 'exit_state', str
 
-def s7_handler(str):
-    return None, str
+    def s6_handler(self, str):
+        if str[self.pos].isdigit():
+            pos+=1
+            return 's6', str
+        return 's7', str
 
-def exit_handler(str):
-    return None, str
+    def s7_handler(self, str):
+        return None, str
 
-NumericLiteralFSM = FiniteStateMachine()
-NumericLiteralFSM.add_state('s0', s0_handler)
-NumericLiteralFSM.add_state('s1', s1_handler)
-NumericLiteralFSM.add_state('s2', s2_handler)
-NumericLiteralFSM.add_state('s3', s3_handler)
-NumericLiteralFSM.add_state('s4', s4_handler)
-NumericLiteralFSM.add_state('s5', s5_handler)
-NumericLiteralFSM.add_state('s6', s6_handler)
-NumericLiteralFSM.add_state('s7', s7_handler, True)
-NumericLiteralFSM.add_state('exit_state', exit_handler, True)
+    def exit_handler(self, str):
+        return None, str
 
 def isNumericLiteral(str):
-    state = NumericLiteralFSM.run(str)
-    return true if state == 's7' else false
+    if DebugRecognizerNames:
+        print("isNumericLiteral")
+    numericLiteralFSM = NumericLiteralFSM()
+    state, pos = numericLiteralFSM.run(str)
+    if state == 's7':
+        return pos, Token.NumericLiteral, str[:pos]
+    else:
+        return 0, None, None
 
+def isCharacterLiteral(str):
+    if DebugRecognizerNames:
+        print("isCharacterLiteral")
+    if (len(str) >= 7 and str[0]=='\''
+       and ( str[1]=='u' or str[1]=='x' )
+       and (str[2].isdigit() and str[3].isidigit() and str[4].isdigit() and str[5].isdigit())
+       and str[6] == '\''):
+        return 7, Token.CharacterLiteral, str[:7]
+    if len(str) >= 4 and str[0]=='\'' and str[1]=='\\' and str[3]=='\'':
+        return 4, Token.CharacterLiteral, str[:4]
+    if len(str) >= 3 and str[0]=='\'' and str[2]=='\'':
+        return 3, Token.CharacterLiteral, str[:3]
+    return 0, None, None
 
-def isLiteral(str):
-    
-    pass
+def isStringLiteral(str):
+    if DebugRecognizerNames:
+        print("isStringLiteral")
+    # todo: String Interpolation
+    if len(str) >= 2:
+        pos = 0
+        Verbatim = False
+        Interpolation = False
+        if str[pos]=='@':
+            pos+=1
+            Verbatim = True
+        if str[pos]=='$':
+            pos+=1
+            Interpolation=True
+        if str[pos] == '"':
+            pos+=1
+            while pos < len(str):
+                if pos + 1 < len(str):
+                    if ((Verbatim and str[pos]=='"' and str[pos+1] == '"') or
+                        (not Verbatim and str[pos]=='\\' and str[pos-1]=='"')):
+                        return pos+2, Token.StringLiteral, str[:pos+2]
+                pos += 1
+    return 0, None, None
 
 
 class CSharpLexer:
 
-    # fsm = FiniteStateMachine()
+    recognizers = [isWhiteSpace, isComment, isMultilineComment, isIdentifier, isKeyword, isPunctuator, isOperator, isNumericLiteral, isStringLiteral, isCharacterLiteral]
 
-    recognizers = [isIdentifier, isPunctuator, isOperator]
-
-    def __init__(self, input):
-        self.input = input
-        self.position = 0
+    def __init__(self, str):
+        self.str = str
+        self.pos=0
         # fsm.add_state()
 
     def nextToken(self):
-        if pos >= len(str):
+        if self.pos >= len(self.str):
             return Token.EndOfInput, ""
-        for recognizer in recognizers:
-            delta_pos, token_type, value = recognizer(str[pos:])
+        for recognizer in self.recognizers:
+            print(self.pos)
+            delta_pos, token_type, value = recognizer(self.str[self.pos:])
             if delta_pos != 0:
-                pos += delta_pos
+                self.pos += delta_pos
                 return token_type, value
         return Token.Error, ""
 
+lexer = CSharpLexer("""
+using System;
 
-
-    # def tokenize(self, str):
-    #     state = StateMachine.run(str)
-    #     return state.tokenType
+namespace HelloWorld
+{
+  class Program
+  {
+    static void Main(string[] args)
+    {
+      Console.WriteLine("Hello World!");
+    }
+  }
+}
+""")
+lexer.nextToken()

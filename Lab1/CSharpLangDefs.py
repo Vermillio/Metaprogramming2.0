@@ -1,3 +1,26 @@
+from Tokens import *
+
+Token = TokenType()
+
+NonTerm = TokenType()
+
+Comment = Token.Comment
+Keyword = Token.Keyword
+Identifier = Token.Identifier
+Literal = Token.Literal
+Operator = Token.Operator
+Punctuator = Token.Punctuator
+
+CommentMultiline = Comment.CommentMultiline
+
+NumericLiteral = Literal.NumericLiteral
+CharacterLiteral = Literal.CharacterLiteral
+BooleanLiteral = Literal.BooleanLiteral
+StringLiteral = CharacterLiteral.StringLiteral
+IntegerLiteral = NumericLiteral.IntegerLiteral
+
+NullLiteral = Literal.NullLiteral
+
 ArithmeticOperators = ['+','-','*','/','%']
 LogicalOperators = ['||', '&&', '!']
 RelationalOperators = ['>=', '<=', '==', '!=', '<', '>']
@@ -43,3 +66,10 @@ ContextualKeywords = [
 'set',	'unmanaged', '(generic type constraint)',	'value',
 'var',	'when', '(filter condition)',	'where', '(generic type constraint)',
 'where', '(query clause)',	'yield']
+
+AllTokens = Operators+Punctuators+Keywords+ContextualKeywords
+TokensDict = dict.fromkeys(AllTokens)
+for token in AllTokens:
+    TokensDict[token] =
+
+Using =

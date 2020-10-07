@@ -1,25 +1,8 @@
 from FiniteStateMachine import *
-from Tokens import *
+
 from CSharpLangDefs import *
 
 DebugRecognizerNames = True
-
-Token = TokenType()
-
-Comment = Token.Comment
-Keyword = Token.Keyword
-Identifier = Token.Identifier
-Literal = Token.Literal
-Operator = Token.Operator
-Punctuator = Token.Punctuator
-
-CommentMultiline = Comment.CommentMultiline
-
-NumericLiteral = Literal.NumericLiteral
-CharacterLiteral = Literal.CharacterLiteral
-BooleanLiteral = Literal.BooleanLiteral
-StringLiteral = CharacterLiteral.StringLiteral
-IntegerLiteral = NumericLiteral.IntegerLiteral
 
 # RECOGNITION FUNCTIONS
 
@@ -66,7 +49,7 @@ def isWhiteSpace(str):
         print("isWhiteSpace")
     pos = 0
     while pos < len(str):
-        if not str[pos].iswhitespace():
+        if not str[pos].isspace():
             break
         pos+=1
     if pos == 0:
@@ -244,7 +227,7 @@ def isStringLiteral(str):
 
 class CSharpLexer:
 
-    recognizers = [isWhiteSpace, isComment, isMultilineComment, isIdentifier, isKeyword, isPunctuator, isOperator, isNumericLiteral, isStringLiteral, isCharacterLiteral]
+    recognizers = [isWhiteSpace, isComment, isMultilineComment, isKeyword, isIdentifier, isPunctuator, isOperator, isNumericLiteral, isStringLiteral, isCharacterLiteral]
 
     def __init__(self, str):
         self.str = str

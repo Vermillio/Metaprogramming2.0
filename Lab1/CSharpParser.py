@@ -1,4 +1,5 @@
 from CSharpLexer import *
+from CSharpSyntaxRules import *
 
 class ASTNode:
     Val = None
@@ -16,50 +17,60 @@ class ASTNode:
     def get_child(ind):
         return Children[ind]
 
-# def copy_tree(root):
-#     if not root:
-#         return None
-#     return ASTNode(root.Val, copy_tree(Left), copy_tree(Right))
-
-class Rule:
-    From = []
-    To = None
-
-    def __init__(From, To):
-        self.From = from
-        self.To = To
-
-    def reduce(stack):
-        for i in range(0, len(stack)):
-            if stack[i].Val not in From[i]:
-                return False
-
-        TreeValues = stack[:len(From)]
-        NewTree = ASTNode(To)
-        for tv in TreeValues:
-            NewTree.add_child(tv)
-        stack = stack[len(From):]
-        stack.insert(0, NewTree)
-
-
-
-
-# switch identifier expression
 
 
 class CSharpParser:
 
     stack = []
+
+    # rules = {
+    #     'default' : [
+    #
+    #     ],
+    #     'class_decl' : [
+    #
+    #     ]
+    # }
+
     rules = [
-        Rule([ [Tokens['using']], [Tokens['whitespace']], [Identifier]], NonTerm.UsingDirective),
-        Rule([ [NonTerm.Expression, NumericLiteral], [Tokens['+']], [NonTerm.Expression] ], NonTerm.Expression),
-        Rule([ [NonTerm.Expression], [Tokens['?']], [NonTerm.Expression], [Tokens[':']], [NonTerm.Expression] ], NonTerm.TernaryOperator),
-        Rule([ [Tokens['If']], [Tokens['whitespace']], [Tokens['(']], [NonTerm.Condition], [Tokens[')']], [Tokens['whitespace']], [Tokens['{']]  ], NonTerm.IfStatement),
+        SyntaxRule([ [Tokens['using']], [Tokens['whitespace']], [Identifier]], NonTerm.UsingDirective),
+        SyntaxRule([Tokens['namespace'], [Tokens['whitespace']], [Identifier]], NonTerm.Namespace),
+
+        # finished
+
+#        SyntaxRule([NonTerm.ClassModifiersGroup, [Tokens['whitespace']], NonTerm.ClassDecl),
+
+        SyntaxRule([class_modifiers], NonTerm.ClassModifiersGroup),
+        SyntaxRule([NonTerm.ClassModifiersGroup], [Tokens['whitespace']], [NonTerm.ClassModifiersGroup], NonTerm.ClassModifiersGroup),
+        ClassDeclRule(),
+        FuncDeclRule(),
+        IfRule(),
+        IfElseRule(),
+        SwitchRule(),
+        SwitchBodyRule(),
+        CaseRule(),
+        IdentifierRule(),
+        AssignmentRule(),
+        CallFuncOrMethodRule(),
+
+        # conditions and expressions
+
+        SyntaxRule([[Tokens['(']], [NonTerm.Condition], [Tokens[')']]], NonTerm.Condition),
+        SyntaxRule([[Tokens['(']], [NonTerm.Expression], [Tokens[')']]], NonTerm.Expression),
+
+        SyntaxRule([[NonTerm.Condition, NonTerm.Expression], [Tokens[i] for i in RelationalOperators]+[Tokens[i] for i in LogicalOperators], [NonTerm.Condition, NonTerm.Expression]], NonTerm.Condition),
+
+        SyntaxRule([ [NonTerm.Expression, Literal, Identifier], [Tokens[i] for i in ArithmeticOperators]+[Tokens[i] for i in BitwiseOperators], [NonTerm.Expression, Literal, Identifier] ], NonTerm.Expression),
+        SyntaxRule([ [NonTerm.Expression], [Tokens['?']], [NonTerm.Expression], [Tokens[':']], [NonTerm.Expression] ], NonTerm.TernaryOperator),
      ]
 
     def buildAST(tokens):
 #       tree = ASTNode(None, None, None)
         for token in tokens:
-            stack.insert(0, ASTNode(token))
-            for rule in rules:
-                rule.reduce(stack)
+            stack.append(ASTNode(token))
+            reduced = True
+            while reduced:
+                reduced = False
+                for rule in rules:
+                    if rule.reduce(stack):
+                        reduced = True

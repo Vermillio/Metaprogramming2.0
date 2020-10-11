@@ -73,3 +73,9 @@ for token in AllTokens:
     TokensDict[token] =
 
 Using =
+
+access_modifiers = [Tokens['public'], Tokens['internal'], Tokens['private'], Tokens['protected']]
+
+class_modifiers = [Tokens['public'], Tokens['internal'],
+#Tokens['private'], Tokens['protected'], Tokens['static'], Tokens['abstract'], # only members
+Tokens['abstract'], Tokens['const'], Tokens['extern'], Tokens['partial'], Tokens['sealed'], Tokens['static']]

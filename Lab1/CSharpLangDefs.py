@@ -61,21 +61,19 @@ ContextualKeywords = [
 'from',	'get',	'global',
 'group',	'into',	'join',
 'let',	'nameof',	'notnull',
-'on',	'orderby',	'partial (type)',
-'partial (method)',	'remove',	'select',
+'on',	'orderby',	'partial',
+'remove',	'select',
 'set',	'unmanaged', '(generic type constraint)',	'value',
 'var',	'when', '(filter condition)',	'where', '(generic type constraint)',
 'where', '(query clause)',	'yield']
 
 AllTokens = Operators+Punctuators+Keywords+ContextualKeywords
-TokensDict = dict.fromkeys(AllTokens)
-for token in AllTokens:
-    TokensDict[token] =
+Tokens = dict.fromkeys(AllTokens)
+for i in range(len(AllTokens)):
+    Tokens[AllTokens[i]]=Token.__getattr__('A'+str(i))
 
-Using =
+Tokens['whitespace'] = Token.Whitespace
 
 access_modifiers = [Tokens['public'], Tokens['internal'], Tokens['private'], Tokens['protected']]
 
-class_modifiers = [Tokens['public'], Tokens['internal'],
-#Tokens['private'], Tokens['protected'], Tokens['static'], Tokens['abstract'], # only members
-Tokens['abstract'], Tokens['const'], Tokens['extern'], Tokens['partial'], Tokens['sealed'], Tokens['static']]
+class_modifiers = [Tokens['public'], Tokens['internal'], Tokens['abstract'], Tokens['const'], Tokens['extern'], Tokens['partial'], Tokens['sealed'], Tokens['static']]

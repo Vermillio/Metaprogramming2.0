@@ -2,7 +2,7 @@ from FiniteStateMachine import *
 
 from CSharpLangDefs import *
 
-DebugRecognizerNames = True
+DebugRecognizerNames = False
 
 # RECOGNITION FUNCTIONS
 
@@ -62,7 +62,7 @@ def isOperator(str):
     opers = [op for op in Operators if str.startswith(op)]
     opers.sort(key=lambda a: -len(a))
     if len(opers):
-        return len(opers[0]), Token.Operator, str[:len(opers[0])]
+        return len(opers[0]), Tokens[opers[0]], str[:len(opers[0])]
     else:
         return 0, None, None
 
@@ -70,7 +70,7 @@ def isPunctuator(str):
     if DebugRecognizerNames:
         print("isPunctuator")
     if str[0] in Punctuators:
-        return 1, Token.Punctuator, str[:1]
+        return 1, Tokens[str[0]], str[:1]
     else:
         return 0, None, None
 
@@ -79,7 +79,7 @@ def isKeyword(str):
         print("isKeyword")
     for keyword in Keywords:
         if str.startswith(keyword):
-            return len(keyword), Token.Keyword, str[:len(keyword)]
+            return len(keyword), Tokens[keyword], str[:len(keyword)]
     return 0, None, None
 
 def isIdentifier(str):
@@ -89,9 +89,9 @@ def isIdentifier(str):
         size, token, str = isKeyword(str[1:])
         if size != 0:
             return size+1, Token.Identifier, str[:size+1]
-    if str[0].isalpha():
+    if str[0].isalpha() or str[0]=='_':
         pos = 0
-        while pos < len(str) and not str[pos].isspace():
+        while pos < len(str) and (str[pos].isalpha() or str[pos].isdigit() or str[pos]=='_'):
             pos+=1
         return pos, Token.Identifier, str[:pos]
     return 0, None, None
@@ -238,7 +238,6 @@ class CSharpLexer:
         if self.pos >= len(self.str):
             return Token.EndOfInput, ""
         for recognizer in self.recognizers:
-            print(self.pos)
             delta_pos, token_type, value = recognizer(self.str[self.pos:])
             if delta_pos != 0:
                 self.pos += delta_pos

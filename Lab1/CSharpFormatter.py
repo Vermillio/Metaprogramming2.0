@@ -1,15 +1,59 @@
 import os
 import argparse
 import fnmatch
-        
+
+# newline after each line
+
+whitespace_table = [
+    [[NonTerm.UsingBlock], '', '\n\n'],
+    [[NonTerm.UsingStatement], '', '\n'],
+    [[NonTerm.Block], '\n','\n'],
+    [Operators, ' ', ' '],
+
+
+]
+
+def search_whitespace_table(token):
+    for item in whitespace_table:
+        if token in item[0]:
+            return item[1], item[2]
+    return None, None
 
 class CSharpFormatter:
+    lexer = None
+    parser = None
+    template = None
+    result = None
+
+    def __init__(self, lexer, parser):
+        self.lexer=lexer
+        self.parser=parser
 
     def beautify(self, str, template=None):
-        SyntaxTree = BuildAST(str)
+        self.template = template
+        SyntaxTree, excluded = parser.BuildAST(lexer)
+        node = SyntaxTree
+        indent = 0
+        traverse(node, indent)
+        return result
 
-        return str
+    def traverse(self, node, indent):
 
+        if len(node.Children) == 0:
+            # leaf
+            return node.Str
+        #result.append(node.Str)
+
+        if node == NonTerm.UsingBlock:
+            node.Children = node.Children.sort(key = lambda c: -1 if c == NonTerm.SystemDirective else 1  )
+
+
+        if node == NonTerm.NamespaceBlock:
+
+        before_ws, after_ws = search_whitespace_table(token)
+
+#        for c in node.Children:
+        return before_ws + ''.join( [ traverse(c, indent+1 if node.Val == NonTerm.Block else indent) for c in node.Children ] ) + after_ws
 
 
 

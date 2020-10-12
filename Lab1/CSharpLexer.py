@@ -22,7 +22,7 @@ def isMultilineComment(str):
         pos=2
         while pos < len(str) and not isMultilineCommentEnd(str[pos:]):
             pos+=1
-        if pos < len(str)-1 and isMultilineCommentEnded(str[pos:]):
+        if pos < len(str)-1 and isMultilineCommentEnd(str[pos:]):
             return pos+2, Token.CommentMultiline, str[:pos+2]
         return pos, Token.UnfinishedComment, str
     return 0, None, None
@@ -118,55 +118,57 @@ class NumericLiteralFSM(FiniteStateMachine):
 
     def s0_handler(self, str):
         if str[self.pos].isdigit():
-            pos+=1
+            self.pos+=1
             return 's1', str
         return 'exit_state', str
 
     def s1_handler(self, str):
         if str[self.pos].isdigit():
-            pos+=1
+            self.pos+=1
             return 's1', str
+        else:
+            return 's7', str
         if str[self.pos] == '.':
-            pos+=1
+            self.pos+=1
             return 's2', str
-        if str[self.pos] == 'E' or str[pos] == 'e':
-            pos+=1
+        if str[self.pos] == 'E' or str[self.pos] == 'e':
+            self.pos+=1
             return 's4', str
         return 'exit_state', str
 
     def s2_handler(self, str):
         if str[self.pos].isdigit():
-            pos+=1
+            self.pos+=1
             return 's3', str
         return 'exit_state', str
 
     def s3_handler(self, str):
         if str[self.pos].isdigit():
-            pos+=1
+            self.pos+=1
             return 's3', str
         if str[self.pos] == 'E' or str[self.pos] == 'e':
-            pos+=1
+            self.pos+=1
             return 's4', str
         return 'exit_state', str
 
     def s4_handler(self, str):
         if str[self.pos] == '+' or str[self.pos] == '-':
-            pos+=1
+            self.pos+=1
             return 's5', str
         if str[self.pos].isdigit():
-            pos+=1
+            self.pos+=1
             return 's6', str
         return 'exit_state', str
 
     def s5_handler(self, str):
         if str[self.pos].isdigit():
-            pos+=1
+            self.pos+=1
             return 's6', str
         return 'exit_state', str
 
     def s6_handler(self, str):
         if str[self.pos].isdigit():
-            pos+=1
+            self.pos+=1
             return 's6', str
         return 's7', str
 
@@ -234,7 +236,8 @@ class CSharpLexer:
                     isPunctuator,
                     isOperator,
                     isStringLiteral,
-                    isCharacterLiteral ]
+                    isCharacterLiteral,
+                    isNumericLiteral ]
 
     def __init__(self, str):
         self.str = str

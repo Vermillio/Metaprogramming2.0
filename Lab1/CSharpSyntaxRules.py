@@ -2,10 +2,12 @@ from CSharpLangDefs import *
 
 class ASTNode:
     Val = None
+    Str = None
     Children = []
 
-    def __init__(self, Val):
+    def __init__(self, Val, Str):
         self.Val = Val
+        self.Str = Str
 
     def add_child(self, Child):
         if not isinstance(Child, ASTNode):
@@ -20,14 +22,14 @@ class ASTNode:
         return '{' + self.Val.__repr__() + '}'
 
 # aux functions
-
-def remove_whitespaces(stack):
-    return [(i, stack[i]) for i in range(len(stack)) if stack[i].Val not in [Tokens['whitespace'], Comment, CommentMultiline] ]
+#
+# def remove_whitespaces(stack):
+#     return [(i, stack[i]) for i in range(len(stack)) if stack[i].Val not in [Tokens['whitespace'], Comment, CommentMultiline] ]
 
 def get_val(s, pos):
     if pos >= len(s):
         return None
-    return s[pos][1].Val
+    return s[pos].Val
 
 # def copy_tree(root):
 #     if not root:
@@ -48,15 +50,15 @@ class SyntaxRule:
         for i in range(len(self.From)):
             if get_val(stack, i) not in self.From[i]:
                 return 0
-        return stack[len(self.From)-1][0]+1
+        return len(self.From)
 
     def reduce(self, stack):
-        matched_tokens_num = self.check(remove_whitespaces(stack))
+        matched_tokens_num = self.check(stack)
         if matched_tokens_num == 0:
             return stack, False
 
         TreeValues = stack[:matched_tokens_num]
-        NewTree = ASTNode(self.To)
+        NewTree = ASTNode(self.To, None)
         for tv in TreeValues:
             NewTree.add_child(tv)
         stack = stack[matched_tokens_num:]
@@ -77,7 +79,7 @@ class ClassDeclRule(SyntaxRule):
                 pos+=2
                 while get_val(s, pos) in class_modifiers:
                     pos+=1
-                return s[pos-1][0]+1
+                return pos
         return 0
 
 class FuncDeclRule(SyntaxRule):
@@ -88,7 +90,6 @@ class FuncDeclRule(SyntaxRule):
         pos = 0
         if get_val(s, pos) == NonTerm.Block:
             pos+=1
-
             if get_val(s, pos) == Tokens[')']:
                 pos+=1
                 while get_val(s, pos) == Identifier and get_val(s, pos+1) in [Identifier]+[Tokens[i] for i in Types] and get_val(s, pos+2) == Tokens[',']:
@@ -97,19 +98,15 @@ class FuncDeclRule(SyntaxRule):
                     pos+=2
                     if get_val(s, pos) == Tokens['('] and get_val(s, pos+1) == Identifier and get_val(s, pos+2) in [Identifier]+[Tokens[i] for i in Types]:
                         pos+=3
-
                         if get_val(s, pos) == Tokens['delegate']:
                             pos+=1
-
                         if get_val(s, pos) == Tokens['static']:
                             pos+=1
-
                         if get_val(s, pos) in access_modifiers:
                             pos+=1
                         if get_val(s, pos) in access_modifiers:
                             pos+=1
-
-                        return s[pos-1][0]+1
+                        return pos
         return 0
 
 class BlockRule(SyntaxRule):
@@ -124,7 +121,7 @@ class BlockRule(SyntaxRule):
             while get_val(s, pos) == NonTerm.Line:
                 pos+=1
         if get_val(s, pos) == Tokens['{']:
-            return s[pos][0]+1
+            return pos+1
         return 0
 
 class IfRule(SyntaxRule):
@@ -136,7 +133,7 @@ class IfRule(SyntaxRule):
         if get_val(s, pos) == NonTerm.Block or get_val(s, pos) == NonTerm.Line:
             pos+=1
             if (get_val(s, pos) == NonTerm.Condition or get_val(s, pos) == NonTerm.Expression) and get_val(s, pos+1) == Tokens['if']: # todo: not match unbracketed expresions
-                return s[pos+1][0]+1
+                return pos+2
         return 0
 
 class IfElseRule(SyntaxRule):
@@ -150,7 +147,7 @@ class IfElseRule(SyntaxRule):
             if get_val(s, pos) == Tokens['else']:
                 pos+=1
                 if get_val(s, pos) == NonTerm.IfBlock:
-                    return s[pos][0]+1
+                    return pos+1
         return 0
 
 class SwitchRule(SyntaxRule):
@@ -160,7 +157,7 @@ class SwitchRule(SyntaxRule):
     def check(self, s):
         pos=0
         if get_val(s, pos) == NonTerm.SwitchBody and get_val(s, pos+1) == Tokens['switch']:
-            return s[pos+1][0]+1
+            return pos+2
         return 0
 
 class SwitchBodyRule(SyntaxRule):
@@ -174,7 +171,7 @@ class SwitchBodyRule(SyntaxRule):
             while get_val(s, pos) == NonTerm.CaseBlock:
                 pos+=1
             if get_val(s, pos) == '{':
-                return s[pos][0]+1
+                return pos+1
         return 0
 
 #template
@@ -189,7 +186,7 @@ class CaseRule(SyntaxRule):
             while get_val(s, pos) == NonTerm.Line or get_val(s, pos) == NonTerm.Block:
                 pos+=1
             if get_val(s, pos) == Tokens[':'] and get_val(s, pos+1) == Literal and get_val(s, pos+2) == Tokens['case']:
-                return s[pos+2][0]+1
+                return pos+3
         return 0
 
 
@@ -204,9 +201,10 @@ class IdentifierRule(SyntaxRule):
         while get_val(s, pos) == Identifier and get_val(s, pos+1) == Tokens['.']:
             pos+=2
         if get_val(s, pos) == Identifier:
-            return s[pos][0]+1
+            return pos+1
         else:
             return 0
+
 
 
 #template
@@ -224,7 +222,7 @@ class AssignmentRule(SyntaxRule):
                 pos+=2
                 if get_val(s, pos) == Identifier:
                     pos+=1
-                return s[pos-1][0]+1
+                return pos
         return 0
 
 class ArrayRule(SyntaxRule):
@@ -240,10 +238,10 @@ class ArrayRule(SyntaxRule):
             if get_val(s, pos) == Tokens['[']:
                 if get_val(s, pos+1) in [Identifier]+[Tokens[i] for i in Types]:
                     self.To = Identifier
-                    return s[pos+1][0]+1
+                    return pos+2
                 elif get_val(s, pos+1) == NonTerm.ComplexIdentifier:
                     self.To = NonTerm.ComplexIdentifier
-                    return s[pos+1][0]+1
+                    return pos+2
         return 0
 
 
@@ -262,7 +260,7 @@ class CallFuncOrMethodRule(SyntaxRule):
                 else:
                     pos+=1
             if get_val(s, pos)==Tokens['('] and get_val(s, pos+1) in [Identifier, NonTerm.ComplexIdentifier]:
-                return s[pos+1][0]+1
+                return pos+2
         #todo: potertial trouble with ()
 #        if get_val(s, pos) == NonTerm.Expression:
 
@@ -293,7 +291,7 @@ class ForLoopRule(SyntaxRule):
                 else:
                     return 0
                 if get_val(s, pos)==Tokens['('] and get_val(s, pos+1)==Tokens['for']:
-                    return s[pos+1][0]+1
+                    return pos+2
         return 0
 
 #template
@@ -306,7 +304,7 @@ class WhileRule(SyntaxRule):
         if get_val(s, pos) == NonTerm.Block or get_val(s, pos) == NonTerm.Line:
             pos+=1
             if (get_val(s, pos) == NonTerm.Condition or get_val(s, pos) == NonTerm.Expression) and get_val(s, pos+1) == Tokens['while']: # todo: not match unbracketed expresions
-                return s[pos+1][0]+1
+                return pos+2
         return 0
 
 #template
@@ -331,7 +329,7 @@ class SimpleLineRule(SyntaxRule):
             pos+=1
             while get_val(s, pos) not in [Tokens[';'], Tokens['{'], Tokens['}']]:
                 pos+=1
-            return s[pos-1][0]+1
+            return pos
         return 0
 
 class SimpleBlockRule(SyntaxRule):
@@ -345,7 +343,7 @@ class SimpleBlockRule(SyntaxRule):
             while get_val(s, pos) in [NonTerm.Line, NonTerm.ClassDecl, NonTerm.FuncDecl]:
                 pos+=1
             if get_val(s, pos) == Tokens['{']:
-                return s[pos][0]+1
+                return pos+1
         return 0
 
 class BlockWrapRule(SyntaxRule):
@@ -359,7 +357,7 @@ class BlockWrapRule(SyntaxRule):
             if get_val(s, pos) not in[None, Tokens[';'], Tokens['}']]:
                 while get_val(s, pos) not in[None, Tokens[';'], Tokens['}']]:
                     pos+=1
-                return s[pos-1][0]+1
+                return pos
             # if get_val(s, pos)==Tokens[')']:
             #     while get_val(s, pos) != Tokens['(']:
             #         pos+=1

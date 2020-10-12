@@ -1,40 +1,9 @@
 from CSharpLexer import *
 from CSharpSyntaxRules import *
 
-
-
 class CSharpParser:
 
     stack = []
-
-    # rules = [
-    #     SyntaxRule([ [Tokens['using']], [Tokens['whitespace']], [Identifier]], NonTerm.UsingDirective),
-    #     SyntaxRule([Tokens['namespace'], [Tokens['whitespace']], [Identifier]], NonTerm.Namespace),
-    #
-    #     SyntaxRule([class_modifiers], NonTerm.ClassModifiersGroup),
-    #     SyntaxRule([NonTerm.ClassModifiersGroup], [Tokens['whitespace']], [NonTerm.ClassModifiersGroup], NonTerm.ClassModifiersGroup),
-    #     ClassDeclRule(),
-    #     FuncDeclRule(),
-    #     IfRule(),
-    #     IfElseRule(),
-    #     SwitchRule(),
-    #     SwitchBodyRule(),
-    #     CaseRule(),
-    #     IdentifierRule(),
-    #     AssignmentRule(),
-    #     CallFuncOrMethodRule(),
-    #
-    #     # conditions and expressions
-    #
-    #     SyntaxRule([[Tokens['(']], [NonTerm.Condition], [Tokens[')']]], NonTerm.Condition),
-    #     SyntaxRule([[Tokens['(']], [NonTerm.Expression], [Tokens[')']]], NonTerm.Expression),
-    #
-    #     SyntaxRule([[NonTerm.Condition, NonTerm.Expression], [Tokens[i] for i in RelationalOperators]+[Tokens[i] for i in LogicalOperators], [NonTerm.Condition, NonTerm.Expression]], NonTerm.Condition),
-    #
-    #     SyntaxRule([ [NonTerm.Expression, Literal, Identifier], [Tokens[i] for i in ArithmeticOperators]+[Tokens[i] for i in BitwiseOperators], [NonTerm.Expression, Literal, Identifier] ], NonTerm.Expression),
-    #     SyntaxRule([ [NonTerm.Expression], [Tokens['?']], [NonTerm.Expression], [Tokens[':']], [NonTerm.Expression] ], NonTerm.TernaryOperator),
-    #  ]
-
     rules = [
         SyntaxRule([ [Tokens[';']], [Identifier, NonTerm.ComplexIdentifier], [Tokens['using']]], NonTerm.UsingDirective),
         SyntaxRule([[NonTerm.Block],[Identifier],[Tokens['namespace']]], NonTerm.NamespaceBlock),
@@ -49,12 +18,20 @@ class CSharpParser:
 
     def buildAST(self, lexer):
 #       tree = ASTNode(None, None, None)
-        token = lexer.nextToken()
+        token, str = lexer.nextToken()
         stack = []
-        while token[0] != Token.EndOfInput:
-            print(token[1])
-            stack.insert(0, ASTNode(token[0]))
+        i = 0
+        excluded = []
+        while token != Token.EndOfInput:
+            print(str)
+            if token in [Tokens['whitespace'], Comment, CommentMultiline]:
+                excluded.append([i, Token])
+                continue
+
+            stack.insert(0, ASTNode(token,str))
             token = lexer.nextToken()
+            i+=1
+
             reduced = True
             while reduced:
                 reduced = False
@@ -64,20 +41,29 @@ class CSharpParser:
                         print(rule)
                         print([s.__str__() for s in stack])
                         break
-        return stack
+        return stack, excluded
 
 lexer = CSharpLexer("""
 using System;
 
-namespace HelloWorld
-{
-  class Program
-  {
-    static void Main(string[] args)
-    {
-      Console.WriteLine("Hello World!");
-    }
-  }
+namespace ArrayApplication {
+   class MyArray {
+      static void Main(string[] args) {
+         int []  n = new int[10]; /* n is an array of 10 integers */
+
+         /* initialize elements of array n */
+         for ( int i = 0; i < 10; i++ ) {
+            n[i] = i + 100;
+         }
+
+         /* output each array element's value */
+         foreach (int j in n ) {
+            int i = j-100;
+            Console.WriteLine("Element[{0}] = {1}", i, j);
+         }
+         Console.ReadKey();
+      }
+   }
 }
 """)
 

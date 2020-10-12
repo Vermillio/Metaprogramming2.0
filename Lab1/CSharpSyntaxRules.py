@@ -75,9 +75,9 @@ class ClassDeclRule(SyntaxRule):
                 pos+=2
             if get_val(s, pos) == Identifier and s[pos+1][1].Val == Tokens['class']:
                 pos+=2
-            while get_val(s, pos) in class_modifiers:
-                pos+=1
-            return s[pos-1][0]+1
+                while get_val(s, pos) in class_modifiers:
+                    pos+=1
+                return s[pos-1][0]+1
         return 0
 
 class FuncDeclRule(SyntaxRule):
@@ -91,14 +91,17 @@ class FuncDeclRule(SyntaxRule):
 
             if get_val(s, pos) == Tokens[')']:
                 pos+=1
-                while get_val(s, pos) == Identifier and get_val(s, pos+1) == Identifier and get_val(s, pos+2) == Tokens[',']:
+                while get_val(s, pos) == Identifier and get_val(s, pos+1) in [Identifier]+[Tokens[i] for i in Types] and get_val(s, pos+2) == Tokens[',']:
                     pos+3
-                if get_val(s, pos) == Identifier and get_val(s, pos+1) == Identifier:
+                if get_val(s, pos) == Identifier and get_val(s, pos+1) in [Identifier]+[Tokens[i] for i in Types]:
                     pos+=2
-                    if get_val(s, pos) == Tokens['('] and get_val(s, pos+1) == Identifier and get_val(s, pos+2) == Identifier:
+                    if get_val(s, pos) == Tokens['('] and get_val(s, pos+1) == Identifier and get_val(s, pos+2) in [Identifier]+[Tokens[i] for i in Types]:
                         pos+=3
 
                         if get_val(s, pos) == Tokens['delegate']:
+                            pos+=1
+
+                        if get_val(s, pos) == Tokens['static']:
                             pos+=1
 
                         if get_val(s, pos) in access_modifiers:
@@ -235,7 +238,7 @@ class ArrayRule(SyntaxRule):
             if get_val(s, pos) == NumericLiteral:
                 pos+=1
             if get_val(s, pos) == Tokens['[']:
-                if get_val(s, pos+1) == Identifier:
+                if get_val(s, pos+1) in [Identifier]+[Tokens[i] for i in Types]:
                     self.To = Identifier
                     return s[pos+1][0]+1
                 elif get_val(s, pos+1) == NonTerm.ComplexIdentifier:
@@ -339,7 +342,7 @@ class SimpleBlockRule(SyntaxRule):
         pos=0
         if get_val(s, pos) == Tokens['}']:
             pos+=1
-            while get_val(s, pos) == NonTerm.Line:
+            while get_val(s, pos) in [NonTerm.Line, NonTerm.ClassDecl, NonTerm.FuncDecl]:
                 pos+=1
             if get_val(s, pos) == Tokens['{']:
                 return s[pos][0]+1

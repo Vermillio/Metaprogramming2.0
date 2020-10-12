@@ -39,8 +39,12 @@ class CSharpParser:
         SyntaxRule([ [Tokens[';']], [Identifier, NonTerm.ComplexIdentifier], [Tokens['using']]], NonTerm.UsingDirective),
         SyntaxRule([[NonTerm.Block],[Identifier],[Tokens['namespace']]], NonTerm.NamespaceBlock),
         IdentifierRule(),
-        #SimpleLineRule(),
+        ArrayRule(),
+
+        SimpleLineRule(),
         SimpleBlockRule(),
+        ClassDeclRule(),
+        FuncDeclRule(),
     ]
 
     def buildAST(self, lexer):
@@ -58,8 +62,8 @@ class CSharpParser:
                     stack, reduced = rule.reduce(stack)
                     if reduced:
                         print(rule)
+                        print([s.__str__() for s in stack])
                         break
-            print([s.__str__() for s in stack])
         return stack
 
 lexer = CSharpLexer("""
@@ -67,7 +71,13 @@ using System;
 
 namespace HelloWorld
 {
-
+  class Program
+  {
+    static void Main(string[] args)
+    {
+      Console.WriteLine("Hello World!");
+    }
+  }
 }
 """)
 

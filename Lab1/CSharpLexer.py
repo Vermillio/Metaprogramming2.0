@@ -215,11 +215,10 @@ def isStringLiteral(str):
             pos+=1
             Interpolation=True
         if str[pos] == '"':
-            pos+=1
             while pos < len(str):
                 if pos + 1 < len(str):
-                    if ((Verbatim and str[pos]=='"' and str[pos+1] == '"') or
-                        (not Verbatim and str[pos]=='\\' and str[pos-1]=='"')):
+                    if ((Verbatim and not str[pos]=='"' and str[pos+1] == '"') or
+                        (not Verbatim and not str[pos]=='\\' and str[pos+1]=='"')):
                         return pos+2, Token.StringLiteral, str[:pos+2]
                 pos += 1
     return 0, None, None
@@ -227,7 +226,15 @@ def isStringLiteral(str):
 
 class CSharpLexer:
 
-    recognizers = [isWhiteSpace, isComment, isMultilineComment, isKeyword, isIdentifier, isPunctuator, isOperator, isNumericLiteral, isStringLiteral, isCharacterLiteral]
+    recognizers = [ isWhiteSpace,
+                    isComment,
+                    isMultilineComment,
+                    isKeyword,
+                    isIdentifier,
+                    isPunctuator,
+                    isOperator,
+                    isStringLiteral,
+                    isCharacterLiteral ]
 
     def __init__(self, str):
         self.str = str

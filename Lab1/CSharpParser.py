@@ -6,7 +6,7 @@ class CSharpParser:
     stack = []
     rules = [
         SyntaxRule([ [Tokens[';']], [Identifier, NonTerm.ComplexIdentifier], [Tokens['using']]], NonTerm.UsingDirective),
-        SyntaxRule([[NonTerm.Block],[Identifier],[Tokens['namespace']]], NonTerm.NamespaceBlock),
+        SyntaxRule([[NonTerm.Block],[Identifier, NonTerm.ComplexIdentifier],[Tokens['namespace']]], NonTerm.NamespaceBlock),
         IdentifierRule(),
         ArrayRule(),
 
@@ -20,7 +20,7 @@ class CSharpParser:
         ForLoopRule(),
         WhileRule(),
 
-    #    SimpleLineRule(),
+        SimpleLineRule(),
         SimpleBlockRule(),
 
         # experimental
@@ -31,22 +31,29 @@ class CSharpParser:
         SyntaxRule([ [NonTerm.Expression], [Tokens[':']], [NonTerm.Expression], [Tokens['?']], [NonTerm.Expression, NonTerm.Condition, NonTerm.Identifier] ], NonTerm.TernaryOperator),
     ]
 
+
+
     def buildAST(self, lexer):
+        print_token = False
 #       tree = ASTNode(None, None, None)
         token, str = lexer.nextToken()
-        print(token)
+        if print_token:
+            print(token)
         stack = []
         all_tokens = []
         while token != Token.EndOfInput:
             all_tokens.append((token, str))
             if token in [Tokens['whitespace'], Comment, CommentMultiline, Token.NewLine]:
                 token, str = lexer.nextToken()
-                print(token)
+                if print_token:
+                    print(token)
                 continue
 
             stack.insert(0, ASTNode(token,len(all_tokens)-1, None))
             token, str = lexer.nextToken()
-            print(token)
+            if print_token:
+                print(token)
+
             reduced = True
             while reduced:
                 reduced = False
@@ -58,12 +65,20 @@ class CSharpParser:
                         break
         return stack, all_tokens
 
-lexer = CSharpLexer("""do {} while (a);""")
+lexer = CSharpLexer("""using System;
+
+namespace RefactoringGuru.DesignPatterns.AbstractFactory.Conceptual
+{
+    public interface IAbstractFactory
+    {
+    }
+}""")
 
 
 parser = CSharpParser()
 
 AST, AllTokens = parser.buildAST(lexer)
 #print([AllTokens[i.Pos][1] for i in AST[0].Children if i.Pos != None])
-print(AST[0].display())
-print(AST[0].Children)
+print(AST[2].display())
+print([AST[i].Val for i in range(len(AST))])
+print(AllTokens)

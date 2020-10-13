@@ -151,7 +151,7 @@ class ClassDeclRule(SyntaxRule):
             pos+=1
             if get_val(s, pos) == Identifier and get_val(s, pos+1) == Tokens[':']: # todo: support multiple inheritancew
                 pos+=2
-            if get_val(s, pos) == Identifier and get_val(s, pos+1) == Tokens['class']:
+            if get_val(s, pos) == Identifier and (get_val(s, pos+1) == Tokens['class'] or get_val(s, pos+1) == Tokens['struct'] or get_val(s, pos+1) == Tokens['interface']):
                 pos+=2
                 while get_val(s, pos) in class_modifiers:
                     pos+=1
@@ -262,11 +262,11 @@ class IdentifierRule(SyntaxRule):
 
     def check(self, s):
         pos = 0
-        if not (get_val(s, pos) == Identifier and get_val(s, pos+1) == Tokens['.']):
+        if not (get_val(s, pos) == Identifier or get_val(s, pos) == NonTerm.ComplexIdentifier) and get_val(s, pos+1) == Tokens['.']:
             return 0
-        while get_val(s, pos) == Identifier and get_val(s, pos+1) == Tokens['.']:
+        while (get_val(s, pos) == Identifier or get_val(s, pos) == NonTerm.ComplexIdentifier) and get_val(s, pos+1) == Tokens['.']:
             pos+=2
-        if get_val(s, pos) == Identifier:
+        if pos != 0 and (get_val(s, pos) == Identifier or get_val(s, pos) == NonTerm.ComplexIdentifier):
             return pos+1
         else:
             return 0

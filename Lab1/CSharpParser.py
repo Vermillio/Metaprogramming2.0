@@ -18,8 +18,9 @@ class CSharpParser:
         SwitchBodyRule(),
         CaseRule(),
         ForLoopRule(),
+        WhileRule(),
 
-        SimpleLineRule(),
+    #    SimpleLineRule(),
         SimpleBlockRule(),
 
         # experimental
@@ -57,9 +58,12 @@ class CSharpParser:
                         break
         return stack, all_tokens
 
-lexer = CSharpLexer("""for(;;) { } """)
+lexer = CSharpLexer("""do {} while (a);""")
 
 
 parser = CSharpParser()
 
-print(parser.buildAST(lexer)[0])
+AST, AllTokens = parser.buildAST(lexer)
+#print([AllTokens[i.Pos][1] for i in AST[0].Children if i.Pos != None])
+print(AST[0].display())
+print(AST[0].Children)

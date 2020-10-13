@@ -1,15 +1,49 @@
 from CSharpLangDefs import *
+import itertools
+
+def block_width(block):
+    try:
+        return block.index('\n')
+    except ValueError:
+        return len(block)
+
+def stack_str_blocks(blocks):
+    """Takes a list of multiline strings, and stacks them horizontally.
+
+    For example, given 'aaa\naaa' and 'bbbb\nbbbb', it returns
+    'aaa bbbb\naaa bbbb'.  As in:
+
+    'aaa  +  'bbbb   =  'aaa bbbb
+     aaa'     bbbb'      aaa bbbb'
+
+    Each block must be rectangular (all lines are the same length), but blocks
+    can be different sizes.
+    """
+    builder = []
+    block_lens = [block_width(bl) for bl in blocks]
+    split_blocks = [bl.split('\n') for bl in blocks]
+
+    for line_list in itertools.zip_longest(*split_blocks, fillvalue=None):
+        for i, line in enumerate(line_list):
+            if line is None:
+                builder.append(' ' * block_lens[i])
+            else:
+                builder.append(line)
+            if i != len(line_list) - 1:
+                builder.append(' ')  # Padding
+        builder.append('\n')
+
+    return ''.join(builder[:-1])
 
 class ASTNode:
     Val = None
     Pos = None
-    Children = []
-    WsTemplate = []
 
     def __init__(self, Val, Pos, WsTemplate):
         self.Val = Val
         self.Pos = Pos
         self.WsTemplate = WsTemplate
+        self.Children = []
 
     def add_child(self, Child):
         if not isinstance(Child, ASTNode):
@@ -25,6 +59,40 @@ class ASTNode:
 
     def replace_whitespaces(self, symbols):
         return [symbols[ws] for ws in WsTemplate]
+
+    def display(self): # Here
+        if not self.Children:
+            return self.__str__()
+
+        child_strs = [child.display() for child in self.Children]
+        child_widths = [block_width(s) for s in child_strs]
+
+        # How wide is this block?
+        display_width = max(len(self.__str__()),
+                    sum(child_widths) + len(child_widths) - 1)
+
+        # Determines midpoints of child blocks
+        child_midpoints = []
+        child_end = 0
+        for width in child_widths:
+            child_midpoints.append(child_end + (width // 2))
+            child_end += width + 1
+
+        # Builds up the brace, using the child midpoints
+        brace_builder = []
+        for i in range(display_width):
+            if i < child_midpoints[0] or i > child_midpoints[-1]:
+                brace_builder.append(' ')
+            elif i in child_midpoints:
+                brace_builder.append('+')
+            else:
+                brace_builder.append('-')
+        brace = ''.join(brace_builder)
+
+        name_str = '{:^{}}'.format(self.__str__(), display_width)
+        below = stack_str_blocks(child_strs)
+
+        return name_str + '\n' + brace + '\n' + below
 
 # aux functions
 #
@@ -66,6 +134,8 @@ class SyntaxRule:
         NewTree = ASTNode(self.To, None, None)
         for tv in TreeValues:
             NewTree.add_child(tv)
+        print('!'+str(len(TreeValues)))
+        print(NewTree.Val)
         stack = stack[matched_tokens_num:]
         stack.insert(0, NewTree)
         return stack, True
@@ -301,8 +371,15 @@ class WhileRule(SyntaxRule):
         pos=0
         if get_val(s, pos) == NonTerm.Block or get_val(s, pos) == NonTerm.Line:
             pos+=1
-            if (get_val(s, pos) == NonTerm.Condition or get_val(s, pos) == NonTerm.Expression) and get_val(s, pos+1) == Tokens['while']: # todo: not match unbracketed expresions
-                return pos+2
+            if get_val(s, pos) == Tokens[')'] and (get_val(s, pos+1) == NonTerm.Condition or get_val(s, pos+1) == NonTerm.Expression or get_val(s, pos+1) == Identifier) and get_val(s, pos+2) == Tokens['('] and get_val(s, pos+3) == Tokens['while']:
+                return pos+4
+        pos=0
+        if get_val(s, pos) == Tokens[')'] and (get_val(s, pos+1) == NonTerm.Condition or get_val(s, pos+1) == NonTerm.Expression or get_val(s, pos+1) == Identifier) and get_val(s, pos+2) == Tokens['('] and get_val(s, pos+3) == Tokens['while']:
+            pos+=4
+            if get_val(s, pos) == NonTerm.Block or get_val(s, pos) == NonTerm.Line:
+                pos+=1
+                if get_val(s, pos) == Tokens['do']:
+                    return pos+1
         return 0
 
 #template

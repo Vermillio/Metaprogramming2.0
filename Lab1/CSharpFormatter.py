@@ -1,13 +1,15 @@
 import os
 import argparse
 import fnmatch
+from config import *
 
 # newline after each line
 
 whitespace_table = [
-    [[NonTerm.UsingBlock], '', '\n\n'],
-    [[NonTerm.UsingStatement], '', '\n'],
-    [[NonTerm.Block], '\n','\n'],
+    ( [NonTerm.File], ['\n\n'] ),
+    ( [NonTerm.UsingBlock], ['\n'] ),
+    ( [NonTerm.UsingStatement], [' ', '\n'] ),
+    ( [NonTerm.Block], ['\n','\n'] ),
     [Operators, ' ', ' '],
 
 
@@ -29,32 +31,53 @@ class CSharpFormatter:
         self.lexer=lexer
         self.parser=parser
 
-    def beautify(self, str, template=None):
+    def get_str(node):
+        return self.AllTokens[node.Pos][1]
+
+    def remove_redundant_whitespaces(self):
+        for token in AllTokens:
+            if token == Token.Whitespace
+
+    def beautify(self, template=None):
         self.template = template
-        SyntaxTree, excluded = parser.BuildAST(lexer)
-        node = SyntaxTree
-        indent = 0
-        traverse(node, indent)
-        return result
+        self.SyntaxTree, self.AllTokens = parser.BuildAST(lexer)
+        remove_redundant_whitespaces()
+
+        result = traverse(self.SyntaxTree, 0)
+
+        return ''.join(result)
 
     def traverse(self, node, indent):
-
         if len(node.Children) == 0:
             # leaf
-            return node.Str
-        #result.append(node.Str)
+            return self.get_str(node)
 
         if node == NonTerm.UsingBlock:
-            node.Children = node.Children.sort(key = lambda c: -1 if c == NonTerm.SystemDirective else 1  )
+            node.Children = node.Children.sort(key = lambda c: -1 if self.get_str(c.Children[1].Children[0]) == 'System' else 1  )
 
+        traversed = [ traverse(c, indent+1 if node.Val == NonTerm.Block else indent) for c in node.Children ]
+        found_whitespace_vals = next(x[1] for x in whitespace_table if x[0] == node.Val )
+        if found_whitespace_vals:
+            whitespaces = node.replace_whitespaces(found_whitespace_vals)
 
-        if node == NonTerm.NamespaceBlock:
+        for i in range(len(whitespaces)):
+            if whitespaces[i] == '\n':
+                whitespaces[i] = '\n' + indent_size * indent * '\t' if indent_style == 'tab' else ' '
 
-        before_ws, after_ws = search_whitespace_table(token)
+        for i in range(1, len(whitespaces)+1):
+            traversed.insert(2*i-1, whitespaces[i-1])
+        return ''.join(traversed)
+
 
 #        for c in node.Children:
-        return before_ws + ''.join( [ traverse(c, indent+1 if node.Val == NonTerm.Block else indent) for c in node.Children ] ) + after_ws
+#return handlers[node.Val].apply()
+#        return before_ws + ''.join(  ) + after_ws
 
+def parse_template(path):
+    template = None
+    with open(path) as f:
+        f.read()
+    return template
 
 
 if __name__ == "__main__":
@@ -72,7 +95,8 @@ if __name__ == "__main__":
     parser.add_argument("--template", help="path to template file")
     args = parser.parse_args()
 
-    template = None if not args.template else args.template
+    template_path = None if not args.template else args.template
+    template = parse_template(template_path)
 
     if args.file:
         with open(args.input_path) as fi:

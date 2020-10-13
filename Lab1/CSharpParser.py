@@ -10,28 +10,42 @@ class CSharpParser:
         IdentifierRule(),
         ArrayRule(),
 
-        SimpleLineRule(),
-        SimpleBlockRule(),
         ClassDeclRule(),
         FuncDeclRule(),
+        IfRule(),
+        IfElseRule(),
+        SwitchRule(),
+        SwitchBodyRule(),
+        CaseRule(),
+        ForLoopRule(),
+
+        SimpleLineRule(),
+        SimpleBlockRule(),
+
+        # experimental
+        SyntaxRule([[Tokens[')']],[NonTerm.Expression],[Tokens['(']]], NonTerm.Expression),
+        SyntaxRule([[Tokens[')']],[NonTerm.Condition],[Tokens['(']]], NonTerm.Condition),
+        SyntaxRule([ [NonTerm.Expression, Identifier,NonTerm.ComplexIdentifier]+Literals, [Tokens[i] for i in RelationalOperators]+[Tokens['is']], [NonTerm.Expression, Identifier,NonTerm.ComplexIdentifier]+Literals], NonTerm.Condition),
+        SyntaxRule([ [NonTerm.Expression,Identifier,NonTerm.ComplexIdentifier]+Literals, [Tokens[i] for i in ArithmeticOperators]+[Tokens[i] for i in BitwiseOperators]+[Tokens[i] for i in LogicalOperators], [NonTerm.Expression, Literal,Identifier,NonTerm.ComplexIdentifier]+Literals ], NonTerm.Expression),
+        SyntaxRule([ [NonTerm.Expression], [Tokens[':']], [NonTerm.Expression], [Tokens['?']], [NonTerm.Expression, NonTerm.Condition, NonTerm.Identifier] ], NonTerm.TernaryOperator),
     ]
 
     def buildAST(self, lexer):
 #       tree = ASTNode(None, None, None)
         token, str = lexer.nextToken()
+        print(token)
         stack = []
-        i = 0
-        excluded = []
+        all_tokens = []
         while token != Token.EndOfInput:
-            print(str)
-            if token in [Tokens['whitespace'], Comment, CommentMultiline]:
-                excluded.append([i, Token])
+            all_tokens.append((token, str))
+            if token in [Tokens['whitespace'], Comment, CommentMultiline, Token.NewLine]:
+                token, str = lexer.nextToken()
+                print(token)
                 continue
 
-            stack.insert(0, ASTNode(token,str))
-            token = lexer.nextToken()
-            i+=1
-
+            stack.insert(0, ASTNode(token,len(all_tokens)-1, None))
+            token, str = lexer.nextToken()
+            print(token)
             reduced = True
             while reduced:
                 reduced = False
@@ -41,32 +55,11 @@ class CSharpParser:
                         print(rule)
                         print([s.__str__() for s in stack])
                         break
-        return stack, excluded
+        return stack, all_tokens
 
-lexer = CSharpLexer("""
-using System;
+lexer = CSharpLexer("""for(;;) { } """)
 
-namespace ArrayApplication {
-   class MyArray {
-      static void Main(string[] args) {
-         int []  n = new int[10]; /* n is an array of 10 integers */
-
-         /* initialize elements of array n */
-         for ( int i = 0; i < 10; i++ ) {
-            n[i] = i + 100;
-         }
-
-         /* output each array element's value */
-         foreach (int j in n ) {
-            int i = j-100;
-            Console.WriteLine("Element[{0}] = {1}", i, j);
-         }
-         Console.ReadKey();
-      }
-   }
-}
-""")
 
 parser = CSharpParser()
 
-print(parser.buildAST(lexer))
+print(parser.buildAST(lexer)[0])

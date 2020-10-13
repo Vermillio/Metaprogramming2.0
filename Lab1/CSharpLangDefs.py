@@ -21,13 +21,15 @@ IntegerLiteral = NumericLiteral.IntegerLiteral
 
 NullLiteral = Literal.NullLiteral
 
+Literals = [NumericLiteral, CharacterLiteral, BooleanLiteral, StringLiteral, IntegerLiteral, NullLiteral]
+
 ArithmeticOperators = ['+','-','*','/','%']
 LogicalOperators = ['||', '&&', '!']
 RelationalOperators = ['>=', '<=', '==', '!=', '<', '>']
 AssignmentOperators = ['+=', '-=', '=']
 BitwiseOperators = ['&', '|', '~', '^', '>>', '<<']
 IncrementOperators=['++', '--']
-SpecialOperators=['is', 'sizeof', 'as', 'typeof', 'new', 'checked', 'unchecked', 'dot']
+SpecialOperators=['is', 'sizeof', 'as', 'typeof', 'new', 'checked', 'unchecked', 'dot', '?']
 
 Operators = ArithmeticOperators + LogicalOperators + RelationalOperators + AssignmentOperators + BitwiseOperators + IncrementOperators + SpecialOperators
 

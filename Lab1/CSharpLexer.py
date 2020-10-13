@@ -48,8 +48,10 @@ def isWhiteSpace(str):
     if DebugRecognizerNames:
         print("isWhiteSpace")
     pos = 0
+    if str[pos] == '\n':
+        return pos+1, Token.NewLine, str[:pos]
     while pos < len(str):
-        if not str[pos].isspace():
+        if not str[pos].isspace() or str[pos] == '\n':
             break
         pos+=1
     if pos == 0:
@@ -184,7 +186,7 @@ def isNumericLiteral(str):
     numericLiteralFSM = NumericLiteralFSM()
     state, pos = numericLiteralFSM.run(str)
     if state == 's7':
-        return pos, Token.NumericLiteral, str[:pos]
+        return pos, NumericLiteral, str[:pos]
     else:
         return 0, None, None
 
@@ -195,11 +197,11 @@ def isCharacterLiteral(str):
        and ( str[1]=='u' or str[1]=='x' )
        and (str[2].isdigit() and str[3].isidigit() and str[4].isdigit() and str[5].isdigit())
        and str[6] == '\''):
-        return 7, Token.CharacterLiteral, str[:7]
+        return 7, CharacterLiteral, str[:7]
     if len(str) >= 4 and str[0]=='\'' and str[1]=='\\' and str[3]=='\'':
-        return 4, Token.CharacterLiteral, str[:4]
+        return 4, CharacterLiteral, str[:4]
     if len(str) >= 3 and str[0]=='\'' and str[2]=='\'':
-        return 3, Token.CharacterLiteral, str[:3]
+        return 3, CharacterLiteral, str[:3]
     return 0, None, None
 
 def isStringLiteral(str):
@@ -221,7 +223,7 @@ def isStringLiteral(str):
                 if pos + 1 < len(str):
                     if ((Verbatim and not str[pos]=='"' and str[pos+1] == '"') or
                         (not Verbatim and not str[pos]=='\\' and str[pos+1]=='"')):
-                        return pos+2, Token.StringLiteral, str[:pos+2]
+                        return pos+2, StringLiteral, str[:pos+2]
                 pos += 1
     return 0, None, None
 
@@ -237,7 +239,7 @@ class CSharpLexer:
                     isOperator,
                     isStringLiteral,
                     isCharacterLiteral,
-                    isNumericLiteral ]
+                    isNumericLiteral ] # todo: bool literal null literal
 
     def __init__(self, str):
         self.str = str

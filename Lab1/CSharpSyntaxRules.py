@@ -1,5 +1,6 @@
 from CSharpLangDefs import *
 import itertools
+from config import *
 
 def block_width(block):
     try:
@@ -42,8 +43,10 @@ class ASTNode:
     def __init__(self, Val, Pos, WsTemplate):
         self.Val = Val
         self.Pos = Pos
-        self.WsTemplate = WsTemplate
         self.Children = []
+        self.BeforeWs = None
+        self.AfterWs = None
+        self.indent = 0
 
     def add_child(self, Child):
         if not isinstance(Child, ASTNode):
@@ -56,9 +59,6 @@ class ASTNode:
 
     def __str__(self):
         return '{' + self.Val.__repr__() + '}'
-
-    def replace_whitespaces(self, symbols):
-        return [symbols[ws] for ws in WsTemplate]
 
     def display(self): # Here
         if not self.Children:
@@ -119,22 +119,29 @@ class SyntaxRule:
 
     def check(self, stack):
         if len(stack) < len(self.From):
-            return 0
+            return 0, None
         for i in range(len(self.From)):
             if get_val(stack, i) not in self.From[i]:
-                return 0
+                return 0, None
         return len(self.From)
 
     def reduce(self, stack):
-        matched_tokens_num = self.check(stack)
+        matched_tokens_num, ws_template = self.check(stack)
         if matched_tokens_num == 0:
             return stack, False
 
+        ws_template.reverse()
+
         TreeValues = stack[:matched_tokens_num]
+        TreeValues.reverse()
         NewTree = ASTNode(self.To, None, None)
-        for tv in TreeValues:
+        NewTree.BeforeWs = ws_template[0]
+        for i in range(len(TreeValues)):
+            tv = TreeValues[i]
+            if tv.AfterWs==None:
+                tv.AfterWs = ws_template[i+1]
             NewTree.add_child(tv)
-        print('!'+str(len(TreeValues)))
+        NewTree.AfterWs = ws_template[len(ws_template)-1]
         print(NewTree.Val)
         stack = stack[matched_tokens_num:]
         stack.insert(0, NewTree)
@@ -146,17 +153,25 @@ class ClassDeclRule(SyntaxRule):
 
     def check(self, s):
         pos = 0
-        ws_template = []
+        ws_template = [None]
         if get_val(s, pos) == NonTerm.Block:
             pos+=1
+            ws_template+=['']
             if get_val(s, pos) == Identifier and get_val(s, pos+1) == Tokens[':']: # todo: support multiple inheritancew
                 pos+=2
+                ws_template+=[' ', ' ']
+            if get_val(s, pos) == NonTerm.Generic:
+                pos+=1
+                ws_template+=['']
             if get_val(s, pos) == Identifier and (get_val(s, pos+1) == Tokens['class'] or get_val(s, pos+1) == Tokens['struct'] or get_val(s, pos+1) == Tokens['interface']):
                 pos+=2
+                ws_template+=[' ', ' ']
                 while get_val(s, pos) in class_modifiers:
                     pos+=1
-                return pos
-        return 0
+                    ws_template+=[' ']
+                ws_template[len(ws_template)-1] = None
+                return pos, ws_template
+        return 0, None
 
 class FuncDeclRule(SyntaxRule):
     def __init__(self):
@@ -164,26 +179,72 @@ class FuncDeclRule(SyntaxRule):
 
     def check(self, s):
         pos = 0
+        ws_template = [None]
         if get_val(s, pos) == NonTerm.Block:
             pos+=1
+            ws_template+=['']
             if get_val(s, pos) == Tokens[')']:
                 pos+=1
+                num_parameters_list = 0
+                parameters_template = []
                 while get_val(s, pos) == Identifier and get_val(s, pos+1) in [Identifier]+[Tokens[i] for i in Types] and get_val(s, pos+2) == Tokens[',']:
                     pos+3
+                    num_parameters_list += 1
+                    parameters_template+=[' ',' ', '']
                 if get_val(s, pos) == Identifier and get_val(s, pos+1) in [Identifier]+[Tokens[i] for i in Types]:
                     pos+=2
-                    if get_val(s, pos) == Tokens['('] and get_val(s, pos+1) == Identifier and get_val(s, pos+2) in [Identifier]+[Tokens[i] for i in Types]:
-                        pos+=3
-                        if get_val(s, pos) == Tokens['delegate']:
+                    num_parameters_list+=1
+                    parameters_template+=[' ']
+                elif num_parameters_list != 0:
+                    return 0, None
+
+                if num_parameters_list == 0:
+                    ws_template += [' '] if csharp_space_between_method_declaration_empty_parameter_list_parentheses else ['']
+                else:
+                    ws_template += [' '] if csharp_space_between_method_declaration_parameter_list_parentheses else ['']
+                    ws_template += parameters_template
+                    ws_template += [' '] if csharp_space_between_method_declaration_parameter_list_parentheses else ['']
+
+                if get_val(s, pos) == Tokens['(']:
+                    pos+=1
+                    ws_template += [' '] if csharp_space_between_method_declaration_name_and_open_parenthesis else ['']
+                    if get_val(s, pos) == NonTerm.Generic:
+                        pos+=1
+                        ws_template += ['']
+                    if get_val(s, pos) == Identifier:
+                        pos+=1
+                        ws_template+=[' ']
+                        if get_val(s, pos) in [Identifier]+[Tokens[i] for i in Types]:
                             pos+=1
-                        if get_val(s, pos) == Tokens['static']:
-                            pos+=1
-                        if get_val(s, pos) in access_modifiers:
-                            pos+=1
-                        if get_val(s, pos) in access_modifiers:
-                            pos+=1
-                        return pos
-        return 0
+                            ws_template+=[' ']
+                            if get_val(s, pos) == Tokens['delegate']:
+                                pos+=1
+                                ws_template+=[' ']
+                            if get_val(s, pos) == Tokens['static']:
+                                pos+=1
+                                ws_template+=[' ']
+                            if get_val(s, pos) in access_modifiers:
+                                pos+=1
+                                ws_template+=[' ']
+                            if get_val(s, pos) in access_modifiers:
+                                pos+=1
+                                ws_template+=[' ']
+                            ws_template[len(ws_template)-1] = None
+                            return pos, ws_template
+        return 0, None
+
+class GenericRule(SyntaxRule):
+    def __init__(self):
+        self.To = NonTerm.Generic
+
+    def check(self, s):
+        pos=0
+        ws_template = [None]
+        if get_val(s, pos) == Tokens['>'] and get_val(s, pos+1) in [Identifier] and get_val(s, pos+2) == Tokens['<']:
+            ws_template+=['', '', None]
+            return pos+3, ws_template
+        return 0, None
+
 
 class IfRule(SyntaxRule):
     def __init__(self):
@@ -382,16 +443,16 @@ class WhileRule(SyntaxRule):
                     return pos+1
         return 0
 
-#template
-class LineRule(SyntaxRule):
-    def __init__(self):
-        self.To = NonTerm.Line
-
-    def check(self, s):
-        pos=0
-        if get_val(s, pos) == Tokens[';'] and get_val(s, pos+1) in [NonTerm.Assignment, NonTerm.CallFuncOrMethod, NonTerm.Await]:
-            return 0
-        return 0
+# #template
+# class LineRule(SyntaxRule):
+#     def __init__(self):
+#         self.To = NonTerm.Line
+#
+#     def check(self, s):
+#         pos=0
+#         if get_val(s, pos) == Tokens[';'] and get_val(s, pos+1) in [NonTerm.Assignment, NonTerm.CallFuncOrMethod, NonTerm.Await]:
+#             return 0
+#         return 0
 
 #template
 class SimpleLineRule(SyntaxRule):
@@ -415,13 +476,17 @@ class SimpleBlockRule(SyntaxRule):
 
     def check(self, s):
         pos=0
+        ws_template = [None]
         if get_val(s, pos) == Tokens['}']:
             pos+=1
+            ws_template += [' ']
             while get_val(s, pos) in [NonTerm.Line, NonTerm.ClassDecl, NonTerm.FuncDecl]:
                 pos+=1
+                ws_template+=['\n']
             if get_val(s, pos) == Tokens['{']:
-                return pos+1
-        return 0
+                ws_template+=['\n'] if csharp_new_line_before_open_brace else [' ']
+                return pos+1, ws_template
+        return 0, None
 
 class BlockWrapRule(SyntaxRule):
     def __init__(self):

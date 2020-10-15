@@ -28,7 +28,7 @@ class CSharpFormatter:
     def add_indent(self, ws, indent):
         for i in reversed(range(len(ws))):
             if ws[i]=='\n':
-                ws.insert(i+1, indent)
+                ws = ws[:i+1]+indent+ws[i+1:]
         return ws
 
     def remove_redundant_whitespaces(self):
@@ -45,18 +45,18 @@ class CSharpFormatter:
         return self.traverse(self.SyntaxTree, 0)
 
     def traverse(self, node, indent):
+        indent_str = indent_size * indent * ('\t' if indent_style == 'tab' else ' ')
         if len(node.Children) == 0:
             # leaf
-            return (node.BeforeWs if node.BeforeWs != None else '') + self.get_str(node) + (node.AfterWs if node.AfterWs != None else '')
+            return (self.add_indent(node.BeforeWs, indent_str) if node.BeforeWs != None else '') + self.get_str(node) + (self.add_indent(node.AfterWs, indent_str) if node.AfterWs != None else '')
 
         # todo: make separate rule for this
         if node == NonTerm.UsingBlock:
             node.Children = node.Children.sort(key = lambda c: -1 if self.get_str(c.Children[1].Children[0]) == 'System' else 1  )
 
-        traversed = [ self.traverse(c, indent+1 if node.Val == NonTerm.Block else indent) for c in node.Children ]
+        traversed = [ self.traverse(c, indent+1 if node.Val in [NonTerm.BlockContent, NonTerm.SwitchBody, NonTerm.CaseContent] else indent) for c in node.Children ]
 
-        indent_str = indent_size * indent * '\t' if indent_style == 'tab' else ' '
-        return (self.add_indent(node.BeforeWs) if node.BeforeWs != None else '') + ''.join(traversed) + (self.add_indent(node.AfterWs) if node.AfterWs != None else '')
+        return (self.add_indent(node.BeforeWs, indent_str) if node.BeforeWs != None else '') + ''.join(traversed) + (self.add_indent(node.AfterWs, indent_str) if node.AfterWs != None else '')
 
 def parse_template(path):
     template = None

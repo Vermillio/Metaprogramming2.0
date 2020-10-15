@@ -80,8 +80,9 @@ def isKeyword(str):
     if DebugRecognizerNames:
         print("isKeyword")
     for keyword in Keywords:
-        if str.startswith(keyword) and (len(keyword) >= len(str) or str[len(keyword)].isspace()):
-            return len(keyword), Tokens[keyword], str[:len(keyword)]
+        if str.startswith(keyword):
+            if len(keyword) >= len(str) or (not str[len(keyword)].isalnum() and not str[len(keyword)] in ['_']):
+                return len(keyword), Tokens[keyword], str[:len(keyword)]
     return 0, None, None
 
 def isIdentifier(str):

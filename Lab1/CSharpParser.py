@@ -34,18 +34,24 @@ class CSharpParser:
 
     rules = [   ClassDeclRule(),
                 SimpleBlockRule(),
+                BlockContentRule(),
                 GenericRule(),
-                FuncDeclRule()
+                MethodDeclRule(),
+                IdentifierRule(),
+                NamespaceRule(),
+                SwitchRule(),
+                SwitchBodyRule(),
+                CaseRule(),
                 ]
 
     def buildAST(self, lexer):
         print_token = False
-#       tree = ASTNode(None, None, None)
         token, str = lexer.nextToken()
         if print_token:
             print(token)
         stack = []
         all_tokens = []
+        #whitespaces = []
 
         while token != Token.EndOfInput:
             all_tokens.append((token, str))
@@ -55,7 +61,10 @@ class CSharpParser:
                     print(token)
                 continue
 
-            stack.insert(0, ASTNode(token,len(all_tokens)-1, None))
+            #formatted_tokens.
+
+            current_node = ASTNode(token,len(all_tokens)-1)
+            stack.insert(0, current_node)
             token, str = lexer.nextToken()
             if print_token:
                 print(token)
@@ -71,10 +80,16 @@ class CSharpParser:
                         break
         return stack[0], all_tokens
 
-lexer = CSharpLexer("""public class IAbstractFactory<T>
+lexer = CSharpLexer("""namespace System.Main.Complex {
+public class IAbstractFactory<T>
 {
-    void main() {}
-} """)
+    void main<T> ( int a ) {
+    switch (a) {
+    case 1: break;
+    }
+    }
+}
+}""")
 
 
 parser = CSharpParser()
@@ -87,4 +102,4 @@ AST, AllTokens = parser.buildAST(lexer)
 #print([AllTokens[i.Pos][1] for i in AST[0].Children if i.Pos != None])
 #print(AST.display())
 #print([AST[i].Val for i in range(len(AST))])
-#print(AllTokens)
+print(AllTokens)

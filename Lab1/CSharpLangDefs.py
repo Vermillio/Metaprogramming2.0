@@ -32,6 +32,7 @@ IncrementOperators=['++', '--']
 SpecialOperators=['is', 'sizeof', 'as', 'typeof', 'new', 'checked', 'unchecked', 'dot', '?']
 
 Operators = ArithmeticOperators + LogicalOperators + RelationalOperators + AssignmentOperators + BitwiseOperators + IncrementOperators + SpecialOperators
+BinaryOperators = ArithmeticOperators + LogicalOperators + RelationalOperators + AssignmentOperators + BitwiseOperators
 
 Punctuators = [';', ':', ',', '.', '(', ')', '[', ']', '{', '}']
 

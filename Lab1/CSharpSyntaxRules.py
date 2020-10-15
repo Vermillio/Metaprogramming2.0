@@ -463,57 +463,94 @@ class ForLoopRule(SyntaxRule):
 
     def check(self, s):
         pos=0
+        ws=[None]
         if get_val(s, pos)==NonTerm.Block or get_val(s, pos) == NonTerm.Line:
             pos+=1
+            ws+=[None]
             if get_val(s, pos)==Tokens[')']:
                 pos+=1
+                ws+=[' '] if csharp_space_between_parentheses else ['']
                 if get_val(s, pos) == Tokens[';']:
                     pos+=1
                 elif get_val(s, pos+1)==Tokens[';']:
+                    ws+=[' '] if csharp_space_after_semicolon_in_for_statement else ['']
                     pos+=2
                 else:
-                    return 0
+                    return 0, None
                 if get_val(s, pos) == Tokens[';']:
+                    ws+=[' '] if csharp_space_before_semicolon_in_for_statement or csharp_space_after_semicolon_in_for_statement else ['']
+                    #ws+=[' '] if csharp_space_before_semicolon_in_for_statement else ['']
                     pos+=1
                 elif get_val(s, pos+1)==Tokens[';']:
+                    ws+=[' '] if csharp_space_before_semicolon_in_for_statement else ['']
+                    ws+=[' '] if csharp_space_after_semicolon_in_for_statement else ['']
                     pos+=2
                 else:
-                    return 0
+                    return 0, None
 
-                if get_val(s, pos)==Tokens['('] and get_val(s, pos+1)==Tokens['for']:
-                    return pos+2
-        return 0
+                if get_val(s, pos)==Tokens['(']:
+                    ws+=[' '] if csharp_space_between_parentheses else ['']
+                    pos+=1
+                elif get_val(s, pos+1)==Tokens['(']:
+                    ws+=[' '] if csharp_space_before_semicolon_in_for_statement else ['']
+                    ws+=[' '] if csharp_space_between_parentheses else ['']
+                    pos+=2
+                else:
+                    return 0, None
+
+                if get_val(s, pos)==Tokens['for']:
+                    ws+=[' '] if csharp_space_after_keywords_in_control_flow_statements else ['']
+                    return pos+1, ws+[None]
+        return 0, None
 
 #template
-class WhileRule(SyntaxRule):
+class WhileLoopRule(SyntaxRule):
     def __init__(self):
         self.To = NonTerm.WhileLoop
 
     def check(self, s):
         pos=0
+        ws=[None]
+        # while
         if get_val(s, pos) == NonTerm.Block or get_val(s, pos) == NonTerm.Line:
             pos+=1
-            if get_val(s, pos) == Tokens[')'] and (get_val(s, pos+1) == NonTerm.Condition or get_val(s, pos+1) == NonTerm.Expression or get_val(s, pos+1) == Identifier) and get_val(s, pos+2) == Tokens['('] and get_val(s, pos+3) == Tokens['while']:
-                return pos+4
-        pos=0
-        if get_val(s, pos) == Tokens[')'] and (get_val(s, pos+1) == NonTerm.Condition or get_val(s, pos+1) == NonTerm.Expression or get_val(s, pos+1) == Identifier) and get_val(s, pos+2) == Tokens['('] and get_val(s, pos+3) == Tokens['while']:
-            pos+=4
-            if get_val(s, pos) == NonTerm.Block or get_val(s, pos) == NonTerm.Line:
+            ws+=[None]
+            if get_val(s, pos) == Tokens[')']:
+                ws += [' '] if csharp_space_between_parentheses else ['']
                 pos+=1
-                if get_val(s, pos) == Tokens['do']:
-                    return pos+1
-        return 0
+                if get_val(s, pos) in [NonTerm.Condition, NonTerm.Expression, Identifier, NonTerm.ComplexIdentifier]:
+                    ws += [' '] if csharp_space_between_parentheses else ['']
+                    pos+=1
+                if get_val(s, pos) == Tokens['('] and get_val(s, pos+1) == Tokens['while']:
+                    ws+=[' '] if csharp_space_after_keywords_in_control_flow_statements else ['']
+                    pos+=2
+                return pos, ws+[None]
+        pos=0
+        ws=[None]
+        # do while
+        if get_val(s, pos) == Tokens[';']:
+            ws+=['']
+            pos+=1
+            if get_val(s, pos) == Tokens[')']:
+                ws += [' '] if csharp_space_between_parentheses else ['']
+                pos+=1
+                if get_val(s, pos) in [NonTerm.Condition, NonTerm.Expression, Identifier, NonTerm.ComplexIdentifier]:
+                    ws += [' '] if csharp_space_between_parentheses else ['']
+                    pos+=1
+                if get_val(s, pos) == Tokens['('] and get_val(s, pos+1) == Tokens['while']:
+                    ws+=[' '] if csharp_space_after_keywords_in_control_flow_statements else ['']
+                    pos+=2
+                    print("!!!!!!")
+                    print(get_val(s, pos))
+                    if get_val(s, pos) == NonTerm.Block or get_val(s, pos) == NonTerm.Line:
+                        pos+=1
+                        ws+=[None]
+                        print("!!!!!!")
+                        if get_val(s, pos) == Tokens['do']:
 
-# #template
-# class LineRule(SyntaxRule):
-#     def __init__(self):
-#         self.To = NonTerm.Line
-#
-#     def check(self, s):
-#         pos=0
-#         if get_val(s, pos) == Tokens[';'] and get_val(s, pos+1) in [NonTerm.Assignment, NonTerm.CallFuncOrMethod, NonTerm.Await]:
-#             return 0
-#         return 0
+
+                            return pos+1, ws+[None]
+        return 0, None
 
 #template
 class SimpleLineRule(SyntaxRule):
@@ -556,7 +593,8 @@ class BlockContentRule(SyntaxRule):
     def check(self, s):
         pos=0
         ws=[None]
-        while get_val(s, pos) in [NonTerm.Line, NonTerm.ClassDecl, NonTerm.MethodDecl, NonTerm.SwitchBlock]:
+        # todo: NonTerm.Block causes troubles
+        while get_val(s, pos) in [NonTerm.Line, NonTerm.ClassDecl, NonTerm.MethodDecl, NonTerm.SwitchBlock, NonTerm.ForLoop, NonTerm.WhileLoop]:
             pos+=1
             ws+=['\n']
         return (0, None) if pos == 0 else (pos, ws)

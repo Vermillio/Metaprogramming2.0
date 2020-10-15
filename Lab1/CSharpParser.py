@@ -42,6 +42,8 @@ class CSharpParser:
                 SwitchRule(),
                 SwitchBodyRule(),
                 CaseRule(),
+                ForLoopRule(),
+                WhileLoopRule(),
                 ]
 
     def buildAST(self, lexer):
@@ -84,9 +86,9 @@ lexer = CSharpLexer("""namespace System.Main.Complex {
 public class IAbstractFactory<T>
 {
     void main<T> ( int a ) {
-    switch (a) {
-    case 1: break;
-    }
+
+        do { for (;;) {}
+        } while ();
     }
 }
 }""")

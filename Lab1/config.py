@@ -39,14 +39,14 @@ csharp_space_after_colon_in_inheritance_clause = True
 csharp_space_after_comma = True # !
 csharp_space_after_dot = False # !
 csharp_space_after_keywords_in_control_flow_statements = True
-csharp_space_after_semicolon_in_for_statement = True
+csharp_space_after_semicolon_in_for_statement = True # !
 csharp_space_around_binary_operators = True # !
 csharp_space_around_declaration_statements = False
 csharp_space_before_colon_in_inheritance_clause = True
 csharp_space_before_comma = False # !
 csharp_space_before_dot = False # !
 csharp_space_before_open_square_brackets = False
-csharp_space_before_semicolon_in_for_statement = False
+csharp_space_before_semicolon_in_for_statement = False # !
 csharp_space_between_empty_square_brackets = False
 csharp_space_between_method_call_empty_parameter_list_parentheses = False
 csharp_space_between_method_call_name_and_opening_parenthesis = False
@@ -54,7 +54,7 @@ csharp_space_between_method_call_parameter_list_parentheses = False
 csharp_space_between_method_declaration_empty_parameter_list_parentheses = False # !
 csharp_space_between_method_declaration_name_and_open_parenthesis = False # !
 csharp_space_between_method_declaration_parameter_list_parentheses = False # !
-csharp_space_between_parentheses = False
+csharp_space_between_parentheses = False # !
 csharp_space_between_square_brackets = False
 
 # Wrapping preferences

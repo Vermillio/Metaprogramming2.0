@@ -34,7 +34,6 @@ class CSharpParser:
 
     rules = [   ClassDeclRule(),
                 SimpleBlockRule(),
-                BlockContentRule(),
                 GenericRule(),
                 MethodDeclRule(),
                 IdentifierRule(),
@@ -44,6 +43,8 @@ class CSharpParser:
                 CaseRule(),
                 ForLoopRule(),
                 WhileLoopRule(),
+                IfRule(),
+                IfElseRule(),
                 ]
 
     def buildAST(self, lexer):
@@ -87,8 +88,6 @@ public class IAbstractFactory<T>
 {
     void main<T> ( int a ) {
 
-        do { for (;;) {}
-        } while ();
     }
 }
 }""")

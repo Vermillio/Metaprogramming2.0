@@ -83,6 +83,11 @@ class ASTNode:
         if self.AfterWs == None:
             self.AfterWs = s
 
+    def set_children_ws(self, ws):
+        self.Children[0].set_before(ws[0])
+        for i in range(1, len(ws)):
+            self.Children[i-1].set_after(ws[i])
+
     def display(self): # Here
         if not self.Children:
             return self.__str__()
@@ -161,12 +166,7 @@ class SyntaxRule:
         for i in range(len(TreeValues)):
             tv = TreeValues[i]
             NewTree.add_child(tv)
-        for i in range(1, len(ws)):
-            tv = NewTree.Children[i-1]
-            tv.set_after(ws[i])
-        NewTree.Children[0].BeforeWs = ws[0]
-        #NewTree.AfterWs = ws[len(ws)-1]
-        print(NewTree.Val)
+        NewTree.set_children_ws(ws)
         stack = stack[matched_tokens_num:]
         stack.insert(0, NewTree)
         return stack, True
@@ -288,11 +288,22 @@ class IfRule(SyntaxRule):
 
     def check(self, s):
         pos=0
+        ws=[None]
         if get_val(s, pos) == NonTerm.Block or get_val(s, pos) == NonTerm.Line:
             pos+=1
-            if (get_val(s, pos) == NonTerm.Condition or get_val(s, pos) == NonTerm.Expression) and get_val(s, pos+1) == Tokens['if']: # todo: not match unbracketed expresions
-                return pos+2
-        return 0
+            ws+=[None]
+            if get_val(s, pos) == Tokens[')']:
+                pos+=1
+                ws+=[' '] if csharp_space_between_parentheses else ['']
+                if get_val(s, pos) in [NonTerm.Condition, NonTerm.Expression, Identifier, NonTerm.ComplexIdentifier]:
+                    pos+=1
+                    ws+=[' '] if csharp_space_between_parentheses else ['']
+                if get_val(s, pos) == Tokens['('] and get_val(s, pos+1) == Tokens['if']: # todo: not match unbracketed expresions
+                    ws+=[' '] if csharp_space_after_keywords_in_control_flow_statements else ['']
+                    print(pos+2)
+                    print(ws+[None])
+                    return pos+2, ws+[None]
+        return 0, None
 
 class IfElseRule(SyntaxRule):
     def __init__(self):
@@ -300,13 +311,16 @@ class IfElseRule(SyntaxRule):
 
     def check(self, s):
         pos=0
-        if get_val(s, pos) == NonTerm.Block or get_val(s, pos) == NonTerm.Line:
+        ws=[None]
+        if get_val(s, pos) in [NonTerm.Block, NonTerm.Line, NonTerm.IfBlock]:
             pos+=1
+            ws+=[' '] if get_val(s, pos) == NonTerm.IfBlock or csharp_space_after_keywords_in_control_flow_statements else ['']
             if get_val(s, pos) == Tokens['else']:
                 pos+=1
-                if get_val(s, pos) == NonTerm.IfBlock:
-                    return pos+1
-        return 0
+                ws+=['\n'] if csharp_new_line_before_else else [' ']
+                if get_val(s, pos) in [NonTerm.IfBlock, NonTerm.IfElseBlock]:
+                    return pos+1, ws+[None]
+        return 0, None
 
 class SwitchRule(SyntaxRule):
     def __init__(self):
@@ -524,7 +538,7 @@ class WhileLoopRule(SyntaxRule):
                 if get_val(s, pos) == Tokens['('] and get_val(s, pos+1) == Tokens['while']:
                     ws+=[' '] if csharp_space_after_keywords_in_control_flow_statements else ['']
                     pos+=2
-                return pos, ws+[None]
+                    return pos, ws+[None]
         pos=0
         ws=[None]
         # do while
@@ -540,15 +554,10 @@ class WhileLoopRule(SyntaxRule):
                 if get_val(s, pos) == Tokens['('] and get_val(s, pos+1) == Tokens['while']:
                     ws+=[' '] if csharp_space_after_keywords_in_control_flow_statements else ['']
                     pos+=2
-                    print("!!!!!!")
-                    print(get_val(s, pos))
                     if get_val(s, pos) == NonTerm.Block or get_val(s, pos) == NonTerm.Line:
                         pos+=1
                         ws+=[None]
-                        print("!!!!!!")
                         if get_val(s, pos) == Tokens['do']:
-
-
                             return pos+1, ws+[None]
         return 0, None
 
@@ -568,6 +577,20 @@ class SimpleLineRule(SyntaxRule):
             return pos
         return 0
 
+class BlockContentRule(SyntaxRule):
+    def __init__(self):
+        self.To = NonTerm.BlockContent
+
+    def check(self, s):
+        pos=0
+        ws=[None]
+        # todo: NonTerm.Block causes troubles
+        while get_val(s, pos) in [NonTerm.Line, NonTerm.ClassDecl, NonTerm.MethodDecl, NonTerm.SwitchBlock, NonTerm.ForLoop, NonTerm.WhileLoop, NonTerm.IfBlock, NonTerm.IfElseBlock]:
+            pos+=1
+            ws+=['\n']
+
+        return (0, None) if pos == 0 else (pos, ws)
+
 class SimpleBlockRule(SyntaxRule):
     def __init__(self):
         self.To = NonTerm.Block
@@ -586,18 +609,40 @@ class SimpleBlockRule(SyntaxRule):
                 return pos+1, ws
         return 0, None
 
-class BlockContentRule(SyntaxRule):
-    def __init__(self):
-        self.To = NonTerm.BlockContent
 
-    def check(self, s):
-        pos=0
-        ws=[None]
-        # todo: NonTerm.Block causes troubles
-        while get_val(s, pos) in [NonTerm.Line, NonTerm.ClassDecl, NonTerm.MethodDecl, NonTerm.SwitchBlock, NonTerm.ForLoop, NonTerm.WhileLoop]:
-            pos+=1
-            ws+=['\n']
-        return (0, None) if pos == 0 else (pos, ws)
+    def reduce(self, stack):
+        matched_tokens_num, ws = 0, None
+        matched_content_tokens_num, content_ws = BlockContentRule().check(stack[1:])
+        if matched_content_tokens_num != 0:
+            ContentTree = ASTNode(NonTerm.BlockContent, None)
+            content_values = stack[1:matched_content_tokens_num+1]
+            content_values.reverse()
+            content_ws.reverse()
+            stack_no_content = stack[:1]+[ContentTree]+stack[matched_content_tokens_num+1:]
+            matched_tokens_num, ws = self.check(stack_no_content)
+        else:
+            matched_tokens_num, ws = self.check(stack)
+
+        if matched_tokens_num == 0:
+            return stack, False
+
+        if matched_content_tokens_num != 0:
+            # add content to AST
+            for cv in content_values:
+                ContentTree.add_child(cv)
+            ContentTree.set_children_ws(content_ws)
+            stack = stack_no_content
+
+        ws.reverse()
+        TreeValues = stack[:matched_tokens_num]
+        TreeValues.reverse()
+        NewTree = ASTNode(self.To, None)
+        for tv in TreeValues:
+            NewTree.add_child(tv)
+        NewTree.set_children_ws(ws)
+        stack = stack[matched_tokens_num:]
+        stack.insert(0, NewTree)
+        return stack, True
 
 class BlockWrapRule(SyntaxRule):
     def __init__(self):

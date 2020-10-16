@@ -452,18 +452,21 @@ class ArrayRule(SyntaxRule):
 
     def check(self, s):
         pos = 0
+        ws=[None]
         if get_val(s, pos) == Tokens[']']:
             pos+=1
-            if get_val(s, pos) == NumericLiteral:
+            ws+=[None]
+            if get_val(s, pos) in [NumericLiteral, Identifier, NonTerm.ComplexIdentifier, NonTerm.Expression]:
                 pos+=1
+                ws+=[None]
             if get_val(s, pos) == Tokens['[']:
-                if get_val(s, pos+1) in [Identifier]+[Tokens[i] for i in Types]:
-                    self.To = Identifier
-                    return pos+2
+                if get_val(s, pos+1) in [Identifier]:
+                    self.To = NonTerm.ComplexIdentifier
+                    return pos+2, ws+[None, None]
                 elif get_val(s, pos+1) == NonTerm.ComplexIdentifier:
                     self.To = NonTerm.ComplexIdentifier
-                    return pos+2
-        return 0
+                    return pos+2, ws+[None, None]
+        return 0, None
 
 
 class MethodCallRule(SyntaxRule):
@@ -476,7 +479,7 @@ class MethodCallRule(SyntaxRule):
         if get_val(s, pos)==Tokens[')']:
             pos+=1
             parameters_count = 0
-            while get_val(s, pos) in [Literal, Identifier, NonTerm.ComplexIdentifier, NonTerm.Condition, NonTerm.Expression, NonTerm.TernaryOperator, NonTerm.Assignment, NonTerm.CallFuncOrMethod]:
+            while get_val(s, pos) in Literals+[Identifier, NonTerm.ComplexIdentifier, NonTerm.Condition, NonTerm.Expression, NonTerm.TernaryOperator, NonTerm.Assignment, NonTerm.CallFuncOrMethod]:
                 parameters_count+=1
                 pos+=1
                 if get_val(s, pos) != Tokens[',']:
@@ -596,7 +599,7 @@ class SimpleLineRule(SyntaxRule):
 
     def check(self, s):
         pos=0
-        ws = [None]
+        ws = ['\n']
         if get_val(s, pos) == Tokens[';']:
             pos+=1
             ws+=[None]
@@ -700,28 +703,72 @@ class ForeachRule(SyntaxRule):
         return 0, None
 
 #template
-class Rule(SyntaxRule):
+class UsingRule(SyntaxRule):
     def __init__(self):
-        self.To = NonTerm.Token
+        self.To = NonTerm.Using
 
     def check(self, s):
-        pos=0
-        return 0
+        if get_val(s, 0) in [Identifier, NonTerm.ComplexIdentifier] and get_val(s, 1) == Tokens['using']:
+            return 2, [None, ' ', None]
+        return 0, None
 
 #template
-class Rule(SyntaxRule):
+class ExpressionRule(SyntaxRule):
     def __init__(self):
-        self.To = NonTerm.Token
+        self.To = NonTerm.Expression
 
     def check(self, s):
         pos=0
-        return 0
+        ws=[None]
+        if get_val(s, pos) in [NonTerm.Expression,Identifier,NonTerm.ComplexIdentifier]+Literals:
+            pos+=1
+            ws+=[None]
+            if get_val(s, pos) in [Tokens[i] for i in ArithmeticOperators]+[Tokens[i] for i in BitwiseOperators]+[Tokens[i] for i in LogicalOperators]:
+                ws+=[None]
+                pos+=1
+                if get_val(s, pos) in [NonTerm.Expression,Identifier,NonTerm.ComplexIdentifier]+Literals:
+                    return pos+1, ws+[None]
+        #
+        return 0, None
 
 #template
-class Rule(SyntaxRule):
+class ConditionRule(SyntaxRule):
     def __init__(self):
-        self.To = NonTerm.Token
+        self.To = NonTerm.Condition
 
     def check(self, s):
         pos=0
-        return 0
+        ws=[None]
+        if get_val(s, pos) in [NonTerm.Expression,Identifier,NonTerm.ComplexIdentifier]+Literals:
+            pos+=1
+            ws+=[None]
+            if get_val(s, pos) in [Tokens[i] for i in RelationalOperators]+[Tokens['is']]:
+                pos+=1
+                ws+=[None]
+                if get_val(s, pos) in [NonTerm.Expression, Identifier,NonTerm.ComplexIdentifier]+Literals:
+                    return pos+1, ws+[None]
+        return 0, None
+
+#template
+class TopLevelRule(SyntaxRule):
+    def __init__(self):
+        self.To = NonTerm.TopLevel
+
+    def check(self, s):
+        return len(s), [None]*(len(s)+1)
+
+#template
+class TopLevelRule(SyntaxRule):
+    def __init__(self):
+        self.To = NonTerm.TopLevel
+
+    def check(self, s):
+        return len(s), [None]*(len(s)+1)
+
+#template
+class TopLevelRule(SyntaxRule):
+    def __init__(self):
+        self.To = NonTerm.TopLevel
+
+    def check(self, s):
+        return len(s), [None]*(len(s)+1)

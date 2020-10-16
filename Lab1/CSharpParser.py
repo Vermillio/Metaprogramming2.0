@@ -32,7 +32,8 @@ class CSharpParser:
     #     SyntaxRule([ [NonTerm.Expression], [Tokens[':']], [NonTerm.Expression], [Tokens['?']], [NonTerm.Expression, NonTerm.Condition, NonTerm.Identifier] ], NonTerm.TernaryOperator),
     # ]
 
-    rules = [   ClassDeclRule(),
+    rules = [   UsingRule(),
+                ClassDeclRule(),
                 SimpleBlockRule(),
                 GenericRule(),
                 MethodDeclRule(),
@@ -48,6 +49,9 @@ class CSharpParser:
                 ForeachRule(),
                 MethodCallRule(),
                 SimpleLineRule(),
+                ExpressionRule(),
+                ConditionRule(),
+                ArrayRule(),
                 ]
 
     def buildAST(self, lexer):
@@ -84,6 +88,7 @@ class CSharpParser:
                         print(rule)
                         print([s.__str__() for s in stack])
                         break
+        stack, reduced = TopLevelRule().reduce(stack)
         return stack[0], all_tokens
 
 lexer = CSharpLexer("""namespace System.Main.Complex {
@@ -96,38 +101,7 @@ public class IAbstractFactory<T>
 }""")
 
 
-lexer = CSharpLexer("""
-using System;
-class bubblesort
-{
-    static void Main(string[] args)
-    {
-        int[] a = { 3, 2, 5, 4, 1 };
-        int t;
-        Console.WriteLine("The Array is : ");
-        for (int i = 0; i < a.Length; i++)
-        {
-            Console.WriteLine(a[i]);
-        }
-        for (int j = 0; j <= a.Length - 2; j++)
-        {
-            for (int i = 0; i <= a.Length - 2; i++)
-            {
-                if (a[i] > a[i + 1])
-                {
-                    t = a[i + 1];
-                    a[i + 1] = a[i];
-                    a[i] = t;
-                }
-            }
-        }
-        Console.WriteLine("The Sorted Array :");
-        foreach (int aray in a)
-            Console.Write(aray + " ");
-        Console.ReadLine();
-    }
-}
-""")
+lexer = CSharpLexer("""if (a[i] > a[i + 1]){t = a[i + 1];a[i + 1] = a[i];a[i] = t;}""")
 
 
 parser = CSharpParser()

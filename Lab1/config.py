@@ -54,7 +54,7 @@ csharp_space_between_method_call_parameter_list_parentheses = False # !
 csharp_space_between_method_declaration_empty_parameter_list_parentheses = False # !
 csharp_space_between_method_declaration_name_and_open_parenthesis = False # !
 csharp_space_between_method_declaration_parameter_list_parentheses = False # !
-csharp_space_between_parentheses = False # !
+csharp_space_between_parentheses = True # !
 csharp_space_between_square_brackets = False # !
 
 # Wrapping preferences

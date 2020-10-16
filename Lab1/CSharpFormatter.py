@@ -45,7 +45,7 @@ class CSharpFormatter:
         return self.traverse(self.SyntaxTree, 0)
 
     def getIndentList(self):
-        return [[NonTerm.Block,NonTerm.BlockContent,NonTerm.CaseContent,NonTerm.SwitchBody,NonTerm.Label],
+        return [[NonTerm.BlockContent,NonTerm.Block,NonTerm.CaseContent,NonTerm.SwitchBody,NonTerm.Label],
                 [csharp_indent_block_contents, csharp_indent_braces, csharp_indent_case_contents, csharp_indent_switch_labels, csharp_indent_labels]]
 
     def traverse(self, node, indent):
@@ -59,10 +59,10 @@ class CSharpFormatter:
             node.Children = node.Children.sort(key = lambda c: -1 if self.get_str(c.Children[1].Children[0]) == 'System' else 1  )
 
         IndentList = self.getIndentList()
-        i=0
+        i=-1
         if node.Val in IndentList[0]:
             i = IndentList[0].index(node.Val)
-        traversed = [ self.traverse(c, indent+i if isinstance(i, int) else indent) for c in node.Children ]
+        traversed = [ self.traverse(c, indent+IndentList[1][i] if i!=-1 else indent) for c in node.Children ]
 
         return (self.add_indent(node.BeforeWs, indent_str) if node.BeforeWs != None else '') + ''.join(traversed) + (self.add_indent(node.AfterWs, indent_str) if node.AfterWs != None else '')
 

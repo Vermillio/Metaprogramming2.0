@@ -228,6 +228,24 @@ def isStringLiteral(str):
                 pos += 1
     return 0, None, None
 
+def isBooleanLiteral(str):
+    if DebugRecognizerNames:
+        print("isBooleanLiteral")
+    if len(str) >= 4 and str.startswith('true'):
+        if len(str) == 4 or (not str[5].isalnum() and not str[5] in ['_']):
+            return 5, BooleanLiteral, str[:5]
+    if len(str) >= 5 and str.startswith('false'):
+        if len(str) == 5 or (not str[6].isalnum() and not str[6] in ['_']):
+            return 6, BooleanLiteral, str[:6]
+    return 0, None, None
+
+def isNullLiteral(str):
+    if DebugRecognizerNames:
+        print("isNullLiteral")
+    if len(str) >= 3 and str.startswith('null'):
+        if len(str) == 3 or (not str[4].isalnum() and not str[4] in ['_']):
+            return 4, BooleanLiteral, str[:4]
+    return 0, None, None
 
 class CSharpLexer:
 
@@ -238,6 +256,8 @@ class CSharpLexer:
                     isIdentifier,
                     isPunctuator,
                     isOperator,
+                    isNullLiteral,
+                    isBooleanLiteral,
                     isStringLiteral,
                     isCharacterLiteral,
                     isNumericLiteral ] # todo: bool literal null literal

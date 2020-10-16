@@ -61,6 +61,24 @@ class ASTNode:
             if csharp_space_around_binary_operators:
                 self.BeforeWs = ' '
                 self.AfterWs = ' '
+        if csharp_space_between_parentheses:
+            if Val == Tokens['(']:
+                self.AfterWs = ' '
+            elif Val == Tokens[')']:
+                self.BeforeWs = ' '
+        if csharp_new_line_before_catch and Val == Tokens['catch']:
+            self.BeforeWs = '\n'
+        if csharp_new_line_before_finally and Val == Tokens['finally']:
+            self.BeforeWs = '\n'
+        if Val == Tokens['[']:
+            if csharp_space_before_open_square_brackets:
+                self.BeforeWs = ' '
+            if csharp_space_between_square_brackets:
+                self.AfterWs = ' '
+        if Val == Tokens[']']:
+            if csharp_space_between_square_brackets:
+                self.BeforeWs = ' '
+
 
 
     def add_child(self, Child):
@@ -76,11 +94,11 @@ class ASTNode:
         return '{' + self.Val.__repr__() + '}'
 
     def set_before(self, s):
-        if self.BeforeWs == None:
+        if self.BeforeWs == None and s != None:
             self.BeforeWs = s
 
     def set_after(self, s):
-        if self.AfterWs == None:
+        if self.AfterWs == None and s != None:
             self.AfterWs = s
 
     def set_children_ws(self, ws):
@@ -183,7 +201,8 @@ class ClassDeclRule(SyntaxRule):
             ws+=['']
             if get_val(s, pos) == Identifier and get_val(s, pos+1) == Tokens[':']: # todo: support multiple inheritancew
                 pos+=2
-                ws+=[' ', ' ']
+                ws+=[' '] if csharp_space_after_colon_in_inheritance_clause else ['']
+                ws+=[' '] if csharp_space_before_colon_in_inheritance_clause else ['']
             if get_val(s, pos) == NonTerm.Generic:
                 pos+=1
                 ws+=['']
@@ -212,7 +231,7 @@ class MethodDeclRule(SyntaxRule):
                 num_parameters_list = 0
                 parameters_template = []
                 while get_val(s, pos) == Identifier and get_val(s, pos+1) in [Identifier]+[Tokens[i] for i in Types] and get_val(s, pos+2) == Tokens[',']:
-                    pos+3
+                    pos+=3
                     num_parameters_list += 1
                     parameters_template+=[' ',' ', '']
                 if get_val(s, pos) == Identifier and get_val(s, pos+1) in [Identifier]+[Tokens[i] for i in Types]:
@@ -447,31 +466,40 @@ class ArrayRule(SyntaxRule):
         return 0
 
 
-class CallFuncOrMethodRule(SyntaxRule):
+class MethodCallRule(SyntaxRule):
     def __init__(self):
-        self.To = NonTerm.CallFuncOrMethod
+        self.To = NonTerm.MethodCall
 
     def check(self, s):
         pos=0
+        ws = [None]
         if get_val(s, pos)==Tokens[')']:
             pos+=1
+            parameters_count = 0
             while get_val(s, pos) in [Literal, Identifier, NonTerm.ComplexIdentifier, NonTerm.Condition, NonTerm.Expression, NonTerm.TernaryOperator, NonTerm.Assignment, NonTerm.CallFuncOrMethod]:
+                parameters_count+=1
                 pos+=1
                 if get_val(s, pos) != Tokens[',']:
                     break
                 else:
+                    ws+=[' ']
+                    ws+=[None]
                     pos+=1
+            if parameters_count > 0 and csharp_space_between_method_call_parameter_list_parentheses:
+                ws.insert(1, ' ')
+            ws+=[' '] if (parameters_count > 0 and csharp_space_between_method_call_parameter_list_parentheses) or (parameters_count == 0 and csharp_space_between_method_call_empty_parameter_list_parentheses) else ['']
+
             if get_val(s, pos)==Tokens['('] and get_val(s, pos+1) in [Identifier, NonTerm.ComplexIdentifier]:
-                return pos+2
+                return pos+2, ws+[' ' if csharp_space_between_method_call_name_and_opening_parenthesis else '',None]
         #todo: potertial trouble with ()
 #        if get_val(s, pos) == NonTerm.Expression:
 
-        return 0
+        return 0, None
 
 
 
 #template
-class ForLoopRule(SyntaxRule):
+class ForRule(SyntaxRule):
     def __init__(self):
         self.To = NonTerm.ForLoop
 
@@ -518,7 +546,7 @@ class ForLoopRule(SyntaxRule):
         return 0, None
 
 #template
-class WhileLoopRule(SyntaxRule):
+class WhileRule(SyntaxRule):
     def __init__(self):
         self.To = NonTerm.WhileLoop
 
@@ -568,14 +596,17 @@ class SimpleLineRule(SyntaxRule):
 
     def check(self, s):
         pos=0
+        ws = [None]
         if get_val(s, pos) == Tokens[';']:
             pos+=1
+            ws+=[None]
             while pos < len(s) and get_val(s, pos) not in [Tokens[';'], Tokens['{'], Tokens['}']]:
                 if get_val(s, pos) in [Tokens['('], Tokens[')']]:
-                    return 0
+                    return 0, None
                 pos+=1
-            return pos
-        return 0
+                ws+= ['']
+            return pos, ws
+        return 0, None
 
 class BlockContentRule(SyntaxRule):
     def __init__(self):
@@ -585,7 +616,7 @@ class BlockContentRule(SyntaxRule):
         pos=0
         ws=[None]
         # todo: NonTerm.Block causes troubles
-        while get_val(s, pos) in [NonTerm.Line, NonTerm.ClassDecl, NonTerm.MethodDecl, NonTerm.SwitchBlock, NonTerm.ForLoop, NonTerm.WhileLoop, NonTerm.IfBlock, NonTerm.IfElseBlock]:
+        while get_val(s, pos) in [NonTerm.Block, NonTerm.Line, NonTerm.ClassDecl, NonTerm.MethodDecl, NonTerm.SwitchBlock, NonTerm.ForLoop, NonTerm.WhileLoop, NonTerm.IfBlock, NonTerm.IfElseBlock, NonTerm.ForeachLoop, NonTerm.MethodCall]:
             pos+=1
             ws+=['\n']
 
@@ -644,26 +675,46 @@ class SimpleBlockRule(SyntaxRule):
         stack.insert(0, NewTree)
         return stack, True
 
-class BlockWrapRule(SyntaxRule):
+#template
+class ForeachRule(SyntaxRule):
     def __init__(self):
-        self.To = NonTerm.BlockWrap
+        self.To = NonTerm.ForeachLoop
 
-    def check(self,s):
-        pos=0
-        if get_val(s, pos) == NonTerm.Block:
+    def check(self, s):
+        pos = 0
+        ws = [None]
+        if get_val(s, pos) in [NonTerm.Block, NonTerm.Line]:
+            ws+=[None]
             pos+=1
-            if get_val(s, pos) not in[None, Tokens[';'], Tokens['}']]:
-                while get_val(s, pos) not in[None, Tokens[';'], Tokens['}']]:
-                    pos+=1
-                return pos
-            # if get_val(s, pos)==Tokens[')']:
-            #     while get_val(s, pos) != Tokens['(']:
-            #         pos+=1
-            # if get_val(s, pos) == Identifier:
-            #     pos+=1
-            #     if get_val(s, pos) == Identifier:
-            #         pos+=1
-            #
+            if get_val(s, pos) == Tokens[')']:
+                ws+=[' '] if csharp_space_between_parentheses else ['']
+                pos+=1
+                if (get_val(s, pos) in [Identifier, NonTerm.ComplexIdentifier] and get_val(s, pos+1) == Tokens['in']
+                    and get_val(s, pos+2) in [Identifier, NonTerm.ComplexIdentifier] and get_val(s, pos+3) in [Identifier, NonTerm.ComplexIdentifier]):
+                    ws+=[' ', ' ', ' ']
+                    ws+= [' '] if csharp_space_between_parentheses else ['']
+                    pos+=4
+                    if get_val(s, pos) == Tokens['('] and get_val(s, pos+1) == Tokens['foreach']:
+                        ws+=[' '] if csharp_space_after_keywords_in_control_flow_statements else ['']
+                        return pos+2, ws+[None]
+        return 0, None
+
+#template
+class Rule(SyntaxRule):
+    def __init__(self):
+        self.To = NonTerm.Token
+
+    def check(self, s):
+        pos=0
+        return 0
+
+#template
+class Rule(SyntaxRule):
+    def __init__(self):
+        self.To = NonTerm.Token
+
+    def check(self, s):
+        pos=0
         return 0
 
 #template

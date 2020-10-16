@@ -44,6 +44,10 @@ class CSharpFormatter:
         print("TRAVERSE")
         return self.traverse(self.SyntaxTree, 0)
 
+    def getIndentList(self):
+        return [[NonTerm.Block,NonTerm.BlockContent,NonTerm.CaseContent,NonTerm.SwitchBody,NonTerm.Label],
+                [csharp_indent_block_contents, csharp_indent_braces, csharp_indent_case_contents, csharp_indent_switch_labels, csharp_indent_labels]]
+
     def traverse(self, node, indent):
         indent_str = indent_size * indent * ('\t' if indent_style == 'tab' else ' ')
         if len(node.Children) == 0:
@@ -54,7 +58,11 @@ class CSharpFormatter:
         if node == NonTerm.UsingBlock:
             node.Children = node.Children.sort(key = lambda c: -1 if self.get_str(c.Children[1].Children[0]) == 'System' else 1  )
 
-        traversed = [ self.traverse(c, indent+1 if node.Val in [NonTerm.BlockContent, NonTerm.SwitchBody, NonTerm.CaseContent] else indent) for c in node.Children ]
+        IndentList = self.getIndentList()
+        i=0
+        if node.Val in IndentList[0]:
+            i = IndentList[0].index(node.Val)
+        traversed = [ self.traverse(c, indent+i if isinstance(i, int) else indent) for c in node.Children ]
 
         return (self.add_indent(node.BeforeWs, indent_str) if node.BeforeWs != None else '') + ''.join(traversed) + (self.add_indent(node.AfterWs, indent_str) if node.AfterWs != None else '')
 

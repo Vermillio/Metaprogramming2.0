@@ -276,19 +276,3 @@ class CSharpLexer:
                 self.pos += delta_pos
                 return token_type, value
         return Token.Error, ""
-
-lexer = CSharpLexer("""
-using System;
-
-namespace HelloWorld
-{
-  class Program
-  {
-    static void Main(string[] args)
-    {
-      Console.WriteLine("Hello World!");
-    }
-  }
-}
-""")
-lexer.nextToken()

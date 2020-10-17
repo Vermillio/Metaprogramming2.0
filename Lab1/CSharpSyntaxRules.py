@@ -57,7 +57,7 @@ class ASTNode:
                 self.BeforeWs = ' '
             if csharp_space_after_dot:
                 self.AfterWs = ' '
-        if Val in BinaryOperators:
+        if Val in [Tokens[i] for i in BinaryOperators]:
             if csharp_space_around_binary_operators:
                 self.BeforeWs = ' '
                 self.AfterWs = ' '
@@ -456,7 +456,7 @@ class ArrayRule(SyntaxRule):
         if get_val(s, pos) == Tokens[']']:
             pos+=1
             ws+=[None]
-            if get_val(s, pos) in [NumericLiteral, Identifier, NonTerm.ComplexIdentifier, NonTerm.Expression]:
+            if get_val(s, pos) in [NumericLiteral, Identifier, NonTerm.ComplexIdentifier, NonTerm.Expression, NonTerm.Condition, NonTerm.TernaryOperator, NonTerm.Assignment, NonTerm.MethodCall]:
                 pos+=1
                 ws+=[None]
             if get_val(s, pos) == Tokens['[']:
@@ -479,7 +479,7 @@ class MethodCallRule(SyntaxRule):
         if get_val(s, pos)==Tokens[')']:
             pos+=1
             parameters_count = 0
-            while get_val(s, pos) in Literals+[Identifier, NonTerm.ComplexIdentifier, NonTerm.Condition, NonTerm.Expression, NonTerm.TernaryOperator, NonTerm.Assignment, NonTerm.CallFuncOrMethod]:
+            while get_val(s, pos) in Literals+[Identifier, NonTerm.ComplexIdentifier, NonTerm.Condition, NonTerm.Expression, NonTerm.TernaryOperator, NonTerm.Assignment, NonTerm.MethodCall]:
                 parameters_count+=1
                 pos+=1
                 if get_val(s, pos) != Tokens[',']:
@@ -599,15 +599,15 @@ class SimpleLineRule(SyntaxRule):
 
     def check(self, s):
         pos=0
-        ws = ['\n']
+        ws = [None]
         if get_val(s, pos) == Tokens[';']:
             pos+=1
             ws+=[None]
-            while pos < len(s) and get_val(s, pos) not in [Tokens[';'], Tokens['{'], Tokens['}']]:
+            while pos < len(s) and get_val(s, pos) not in [Tokens[';'], Tokens['{'], Tokens['}'], NonTerm.Line]:
                 if get_val(s, pos) in [Tokens['('], Tokens[')']]:
                     return 0, None
                 pos+=1
-                ws+= ['']
+                ws+= [None]
             return pos, ws
         return 0, None
 
@@ -750,12 +750,14 @@ class ConditionRule(SyntaxRule):
         return 0, None
 
 #template
-class TopLevelRule(SyntaxRule):
+class TernaryOperatorRule(SyntaxRule):
     def __init__(self):
         self.To = NonTerm.TopLevel
 
     def check(self, s):
-        return len(s), [None]*(len(s)+1)
+        pos=0
+        
+        return 0, None
 
 #template
 class TopLevelRule(SyntaxRule):

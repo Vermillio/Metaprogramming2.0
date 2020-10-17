@@ -14,7 +14,7 @@ class CSharpParser:
     #     ClassDeclRule(),
     #     FuncDeclRule(),
     #     IfRule(),
-    #     IfElseRule(),
+    #     IfElseRule( ),
     #     SwitchRule(),
     #     SwitchBodyRule(),
     #     CaseRule(),
@@ -101,7 +101,17 @@ public class IAbstractFactory<T>
 }""")
 
 
-lexer = CSharpLexer("""if (a[i] > a[i + 1]){t = a[i + 1];a[i + 1] = a[i];a[i] = t;}""")
+lexer = CSharpLexer("""/*
+ * C# Program to Perform Bubble Sort
+ */
+
+                    if (a[i] > a[i + 1])
+                    {
+                        t = a[i + 1];
+                        a[i + 1] = a[i];
+                        a[i] = t;
+                    },k
+""")
 
 
 parser = CSharpParser()

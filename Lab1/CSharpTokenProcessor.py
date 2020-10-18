@@ -61,8 +61,10 @@ class CSharpTokenProcessor:
         s = [apply_indent(self.tokens[i][1], self.indents[i]) for i in range(len(self.tokens))]
         for i in range(0, len(self.indents)):
             s.insert(2*i, apply_indent(self.whitespaces[i], self.indents[i]))
+        shift = 0
         for comment, comment_str, i in self.comments:
-            s = s[:i] + [comment_str] + s[i:]
+            s = s[:i+shift] + [comment_str] + s[i+shift:]
+            shift+=1
         if insert_final_newline:
             s+=['\n']
         return ''.join(s)
@@ -139,3 +141,9 @@ class CSharpTokenProcessor:
             elif token in [Tokens[i] for i in IncrementOperators]:
                 self.set_space_before(pos, '')
                 self.set_space_after(pos, '')
+            # # elif token == Tokens['[']:
+            # #     self.set_space_before(pos, '')
+            # #     self.set_space_after(pos, '\n')
+            # elif token == Tokens[']']:
+            #     # self.set_space_before(pos, '')
+            #     self.set_space_after(pos, '\n')

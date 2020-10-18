@@ -36,7 +36,7 @@ Punctuators = [';', ':', ',', '.', '(', ')', '[', ']', '{', '}']
 
 Types = ['bool', 'double', 'decimal','float', 'int', 'long', 'short', 'sbyte', 'string', 'uint','ulong', 'ushort','void']
 
-Keywords = ['abstract',	'as', 'base',
+Keywords = ['abstract',	'as', 'assembly', 'base',
 'break',	'byte',	'case',	'catch',
 'char', 'checked',	'class', 'const',
 'continue',	'default',	'delegate',

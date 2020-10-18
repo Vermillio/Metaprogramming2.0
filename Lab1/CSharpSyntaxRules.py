@@ -372,12 +372,17 @@ class SquareBracketsRule(SyntaxRule):
     def resolve_whitespaces(self, node):
         start = node.Start
         end = node.End
-        self.token_processor.set_space_before(start, ' ' if csharp_space_before_open_square_brackets else '')
+        if self.token_processor.get_space_before(start) != '\n':
+            self.token_processor.set_space_before(start, ' ' if csharp_space_before_open_square_brackets else '')
         if end == start+2:
             self.token_processor.set_space_after(start, ' ' if csharp_space_between_empty_square_brackets else '')
         else:
             self.token_processor.set_space_after(start, ' ' if csharp_space_between_square_brackets else '')
             self.token_processor.set_space_before(end-1, ' ' if csharp_space_between_square_brackets else '')
+        if self.token_processor.get_token(start+1) == Tokens['assembly']:
+            if self.token_processor.get_token(start+2) == Tokens[':']:
+                self.token_processor.set_space_after(end-1, '\n')
+
 
     def check(self, s):
         pos = 0
@@ -442,5 +447,4 @@ class CastRule(SyntaxRule):
         if get_val(s, 0) in [Identifier, NonTerm.ComplexIdentifier]:
             if get_val(s, 1) == NonTerm.Parentheses:
                 return 2
-        print("!!!!!")
         return 0

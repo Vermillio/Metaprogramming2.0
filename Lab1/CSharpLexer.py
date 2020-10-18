@@ -47,16 +47,16 @@ def isComment(str):
 def isWhiteSpace(str):
     if DebugRecognizerNames:
         print("isWhiteSpace")
-    pos = 0
-    if str[pos] == '\n':
-        return pos+1, Token.NewLine, str[:pos]
-    while pos < len(str):
-        if not str[pos].isspace() or str[pos] == '\n':
-            break
-        pos+=1
-    if pos == 0:
-        return 0, None, None
-    return pos, Token.Whitespace, str[:pos]
+
+    if str[0] == '\n':
+        return 1, Token.Newline, str[:1]
+    if str[0] == ' ':
+        return 1, Token.Whitespace, str[:1]
+    if str[0]=='\t':
+        return 1, Token.Tab, str[:1]
+    if str[0].isspace():
+        return 1, Token.UnknownWhitespace, str[:1]
+    return 0, None, None
 
 def isOperator(str):
     if DebugRecognizerNames:

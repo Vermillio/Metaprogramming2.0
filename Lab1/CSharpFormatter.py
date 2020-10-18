@@ -3,68 +3,123 @@ import argparse
 import fnmatch
 from config import *
 from CSharpLangDefs import *
-
-# newline after each line
-
-def search_whitespace_table(token):
-    for item in whitespace_table:
-        if token in item[0]:
-            return item[1], item[2]
-    return None, None
+from CSharpLexer import *
+from CSharpSyntaxRules import *
 
 class CSharpFormatter:
-    lexer = None
-    parser = None
-    template = None
-    result = None
+    rules = [
+        UsingRule(),
 
-    def __init__(self, lexer, parser):
-        self.lexer=lexer
-        self.parser=parser
+        ClassDeclRule(),
+        MethodDeclRule(),
+        MethodCallRule(),
 
-    def get_str(self, node):
-        return self.AllTokens[node.Pos][1]
+        SimpleBlockRule(),
+        ControlFlowRule(),
 
-    def add_indent(self, ws, indent):
-        for i in reversed(range(len(ws))):
-            if ws[i]=='\n':
-                ws = ws[:i+1]+indent+ws[i+1:]
-        return ws
+        GenericRule(),
+        IdentifierRule(),
 
-    def remove_redundant_whitespaces(self):
-        pass
-    #    for token in AllTokens:
-    #        if token == Token.Whitespace
+        SwitchIndentRule(),
 
-    def beautify(self, template=None):
-        self.template = template
-        self.SyntaxTree, self.AllTokens = self.parser.buildAST(self.lexer)
-        self.remove_redundant_whitespaces()
+        SquareBracketsRule(),
+        ParenthesesRule(),
 
-        print("TRAVERSE")
-        return self.traverse(self.SyntaxTree, 0)
+        ObjectInitializerRule(),
+        AnonymousTypeRule(),
+    ]
 
-    def getIndentList(self):
-        return [[NonTerm.BlockContent,NonTerm.Block,NonTerm.CaseContent,NonTerm.SwitchBody,NonTerm.Label],
-                [csharp_indent_block_contents, csharp_indent_braces, csharp_indent_case_contents, csharp_indent_switch_labels, csharp_indent_labels]]
+    def remove_double_whitespaces(self, tokens):
+        pos = 0
+        while pos < len(tokens)-1:
+            if tokens[pos][0] in whitespace_tokens+[Token.Newline] and tokens[pos+1][0] in whitespace_tokens:
+                del tokens[pos+1]
+            elif tokens[pos][0] in whitespace_tokens and tokens[pos+1][0] == Token.Newline:
+                del tokens[pos]
+            else:
+                pos+=1
+        return tokens
 
-    def traverse(self, node, indent):
-        indent_str = indent_size * indent * ('\t' if indent_style == 'tab' else ' ')
-        if len(node.Children) == 0:
-            # leaf
-            return (self.add_indent(node.BeforeWs, indent_str) if node.BeforeWs != None else '') + self.get_str(node) + (self.add_indent(node.AfterWs, indent_str) if node.AfterWs != None else '')
+    def split_whitespaces(self, tokens):
+        pos=0
+        new_tokens = []
+        whitespaces = [' ']
+        while pos < len(tokens):
+            if tokens[pos][0] == Token.Newline:
+                if pos+1 < len(tokens) and tokens[pos+1][0] == Token.Newline:
+                    whitespaces[-1]='\n'
+                    new_tokens.append((Token.EmptyLine, ""))
+                    whitespaces.append('\n')
+                    pos+=2
+                else:
+                    pos+=1
+            elif tokens[pos][0] not in whitespace_tokens:
+                new_tokens.append(tokens[pos])
+                whitespaces.append(' ')
+                pos+=1
+            else:
+                whitespaces[-1]=' '
+                pos+=1
+        return new_tokens, whitespaces
 
-        # todo: make separate rule for this
-        if node == NonTerm.UsingBlock:
-            node.Children = node.Children.sort(key = lambda c: -1 if self.get_str(c.Children[1].Children[0]) == 'System' else 1  )
+    def beautify(self, lexer):
+        all_tokens=[]
+        token, str = lexer.nextToken()
 
-        IndentList = self.getIndentList()
-        i=-1
-        if node.Val in IndentList[0]:
-            i = IndentList[0].index(node.Val)
-        traversed = [ self.traverse(c, indent+IndentList[1][i] if i!=-1 else indent) for c in node.Children ]
+        while token != Token.EndOfInput:
+            all_tokens.append((token, str))
+            token, str = lexer.nextToken()
 
-        return (self.add_indent(node.BeforeWs, indent_str) if node.BeforeWs != None else '') + ''.join(traversed) + (self.add_indent(node.AfterWs, indent_str) if node.AfterWs != None else '')
+        tokens, whitespaces = self.split_whitespaces(self.remove_double_whitespaces(all_tokens))
+        code = Code(tokens, whitespaces)
+        for rule in self.rules:
+            rule.code = code
+
+        self.check_single_tokens(code)
+
+        pos = 0
+        stack = []
+        while pos < len(tokens):
+            print(tokens[pos][0])
+            stack.insert(0, ASTNode(tokens[pos][0], pos, pos+1))
+            reduced = True
+            while reduced:
+                reduced = False
+                for rule in self.rules:
+                    stack, reduced = rule.reduce(stack)
+                    if reduced:
+                        print(rule)
+                        print([s.__str__() for s in stack])
+                        break
+            pos+=1
+
+        return code.get_str()
+
+    def check_single_tokens(self, code):
+        for pos in range(len(code.tokens)):
+            token = code.get_token(pos)
+            if token == Tokens[',']:
+                code.set_space_before(pos, ' ' if csharp_space_before_comma else '')
+                code.set_space_after(pos, ' ' if csharp_space_after_comma else '')
+            elif token == Tokens['.']:
+                code.set_space_before(pos, ' ' if csharp_space_before_dot else '')
+                code.set_space_after(pos, ' ' if csharp_space_after_dot else '')
+            elif token in [Tokens[i] for i in BinaryOperators]:
+                code.set_space_before(pos, ' ' if csharp_space_around_binary_operators else '')
+                code.set_space_after(pos, ' ' if csharp_space_around_binary_operators else '')
+            elif token == Tokens['catch']:
+                code.set_space_before(pos, '\n' if csharp_new_line_before_catch else ' ')
+            elif token == Tokens['finally']:
+                code.set_space_before(pos, '\n' if csharp_new_line_before_finally else ' ')
+            elif token == Tokens['else']:
+                code.set_space_before(pos, '\n' if csharp_new_line_before_else else ' ')
+            elif token == Tokens['{']:
+                code.set_space_before(pos, '\n' if csharp_new_line_before_open_brace else ' ')
+            elif token == Tokens[';']:
+                code.set_space_before(pos, '')
+                code.set_space_after(pos, '\n')
+
+
 
 def parse_template(path):
     template = None
@@ -121,3 +176,27 @@ if __name__ == "__main__":
                                 raise
                     with open(out_file, 'w') as fo:
                         fo.write(beautified_str)
+
+lexer = CSharpLexer("""namespace System.Main.Complex {
+public class IAbstractFactory<T>
+{
+    void main<T> ( int a, S b ) {
+        main();
+    }
+}
+}""")
+
+
+lexer = CSharpLexer("""/*
+ * C# Program to Perform Bubble Sort
+ */
+
+if (a[i] > a[i + 1])
+{
+    t = a[i + 1];
+    a[i + 1] = a[i];
+    a[i] = t;
+}
+""")
+s = CSharpFormatter().beautify(lexer)
+print(s)

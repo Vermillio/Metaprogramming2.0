@@ -81,3 +81,5 @@ Tokens['whitespace'] = Token.Whitespace
 access_modifiers = [Tokens['public'], Tokens['internal'], Tokens['private'], Tokens['protected']]
 
 class_modifiers = [Tokens['public'], Tokens['internal'], Tokens['abstract'], Tokens['const'], Tokens['extern'], Tokens['partial'], Tokens['sealed'], Tokens['static']]
+
+whitespace_tokens = [Token.Tab, Token.Whitespace, Token.UnknownWhitespace]

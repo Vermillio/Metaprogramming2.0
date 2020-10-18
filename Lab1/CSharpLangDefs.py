@@ -1,16 +1,15 @@
 from Tokens import *
 
 Token = TokenType()
-
 NonTerm = TokenType()
 
-Comment = Token.Comment
 Keyword = Token.Keyword
 Identifier = Token.Identifier
 Literal = Token.Literal
 Operator = Token.Operator
 Punctuator = Token.Punctuator
 
+Comment = Token.Comment
 CommentMultiline = Comment.CommentMultiline
 
 NumericLiteral = Literal.NumericLiteral
@@ -18,7 +17,6 @@ CharacterLiteral = Literal.CharacterLiteral
 BooleanLiteral = Literal.BooleanLiteral
 StringLiteral = CharacterLiteral.StringLiteral
 IntegerLiteral = NumericLiteral.IntegerLiteral
-
 NullLiteral = Literal.NullLiteral
 
 Literals = [NumericLiteral, CharacterLiteral, BooleanLiteral, StringLiteral, IntegerLiteral, NullLiteral]
@@ -32,7 +30,7 @@ IncrementOperators=['++', '--']
 SpecialOperators=['is', 'sizeof', 'as', 'typeof', 'new', 'checked', 'unchecked', 'dot', '?']
 
 Operators = ArithmeticOperators + LogicalOperators + RelationalOperators + AssignmentOperators + BitwiseOperators + IncrementOperators + SpecialOperators
-BinaryOperators = ArithmeticOperators + LogicalOperators + RelationalOperators + AssignmentOperators + BitwiseOperators
+BinaryOperators = ArithmeticOperators + LogicalOperators + RelationalOperators + AssignmentOperators + BitwiseOperators + SpecialOperators
 
 Punctuators = [';', ':', ',', '.', '(', ')', '[', ']', '{', '}']
 
@@ -75,8 +73,6 @@ AllTokens = Operators+Punctuators+Keywords+ContextualKeywords
 Tokens = dict.fromkeys(AllTokens)
 for i in range(len(AllTokens)):
     Tokens[AllTokens[i]]=Token.__getattr__('A'+str(i))
-
-Tokens['whitespace'] = Token.Whitespace
 
 access_modifiers = [Tokens['public'], Tokens['internal'], Tokens['private'], Tokens['protected']]
 

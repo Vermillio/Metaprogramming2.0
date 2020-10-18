@@ -1,5 +1,4 @@
 from FiniteStateMachine import *
-
 from CSharpLangDefs import *
 
 DebugRecognizerNames = False

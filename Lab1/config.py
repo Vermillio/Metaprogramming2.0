@@ -26,12 +26,12 @@ csharp_new_line_before_open_brace = True # !
 csharp_new_line_between_query_expression_clauses = True
 
 # Indentation preferences
-csharp_indent_block_contents = 1
-csharp_indent_braces = 0
-csharp_indent_case_contents = 1
-csharp_indent_case_contents_when_block = 1
+csharp_indent_block_contents = 1 # !
+csharp_indent_braces = 0 # !
+csharp_indent_case_contents = 1 # !
+csharp_indent_case_contents_when_block = 0 # !
 csharp_indent_labels = -1
-csharp_indent_switch_labels = 1
+csharp_indent_switch_labels = 1 # !
 
 # Space preferences
 csharp_space_after_cast = False

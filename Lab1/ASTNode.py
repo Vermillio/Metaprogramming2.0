@@ -1,0 +1,94 @@
+def block_width(block):
+    try:
+        return block.index('\n')
+    except ValueError:
+        return len(block)
+
+def stack_str_blocks(blocks):
+    """Takes a list of multiline strings, and stacks them horizontally.
+
+    For example, given 'aaa\naaa' and 'bbbb\nbbbb', it returns
+    'aaa bbbb\naaa bbbb'.  As in:
+
+    'aaa  +  'bbbb   =  'aaa bbbb
+     aaa'     bbbb'      aaa bbbb'
+
+    Each block must be rectangular (all lines are the same length), but blocks
+    can be different sizes.
+    """
+    builder = []
+    block_lens = [block_width(bl) for bl in blocks]
+    split_blocks = [bl.split('\n') for bl in blocks]
+
+    for line_list in itertools.zip_longest(*split_blocks, fillvalue=None):
+        for i, line in enumerate(line_list):
+            if line is None:
+                builder.append(' ' * block_lens[i])
+            else:
+                builder.append(line)
+            if i != len(line_list) - 1:
+                builder.append(' ')  # Padding
+        builder.append('\n')
+
+    return ''.join(builder[:-1])
+
+class ASTNode:
+    Val = None
+
+    def __init__(self, Val, Start, End):
+        self.Val = Val
+        self.Start = Start
+        self.End = End
+        self.Children = []
+        self.indent = 0
+
+    def add_child(self, Child):
+        if not isinstance(Child, ASTNode):
+            return False
+        self.Children.append(Child)
+        return True
+
+    def get_child(self, ind):
+        return self.Children[ind]
+
+    def __str__(self):
+        return '{' + self.Val.__repr__() + '}'
+
+    def display(self): # Here
+        if not self.Children:
+            return self.__str__()
+
+        child_strs = [child.display() for child in self.Children]
+        child_widths = [block_width(s) for s in child_strs]
+
+        # How wide is this block?
+        display_width = max(len(self.__str__()),
+                    sum(child_widths) + len(child_widths) - 1)
+
+        # Determines midpoints of child blocks
+        child_midpoints = []
+        child_end = 0
+        for width in child_widths:
+            child_midpoints.append(child_end + (width // 2))
+            child_end += width + 1
+
+        # Builds up the brace, using the child midpoints
+        brace_builder = []
+        for i in range(display_width):
+            if i < child_midpoints[0] or i > child_midpoints[-1]:
+                brace_builder.append(' ')
+            elif i in child_midpoints:
+                brace_builder.append('+')
+            else:
+                brace_builder.append('-')
+        brace = ''.join(brace_builder)
+
+        name_str = '{:^{}}'.format(self.__str__(), display_width)
+        below = stack_str_blocks(child_strs)
+
+        return name_str + '\n' + brace + '\n' + below
+
+def get_val(s, pos):
+    if pos >= len(s):
+        return None
+    return s[pos].Val

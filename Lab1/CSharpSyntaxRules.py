@@ -213,14 +213,14 @@ class MethodCallRule(SyntaxRule):
     def resolve_whitespaces(self, node):
         start = node.Start
         end = node.End
+        open_parentheses_pos = node.Children[1].Start
+        self.token_processor.set_space_before(open_parentheses_pos, ' ' if csharp_space_between_method_call_name_and_opening_parenthesis else '')
         for pos in range(start, end):
             token = self.token_processor.get_token(pos)
             if token == Tokens['(']:
-                self.token_processor.set_space_before(pos, ' ' if csharp_space_between_method_call_name_and_opening_parenthesis else '')
                 self.token_processor.set_space_after(pos, ' ' if csharp_space_between_method_call_parameter_list_parentheses else '')
             elif token == Tokens[')']:
                 self.token_processor.set_space_before(pos, ' ' if csharp_space_between_method_call_parameter_list_parentheses else '')
-
     def check(self, s):
         pos=0
         if get_val(s, pos) == NonTerm.Parentheses:
@@ -263,17 +263,26 @@ class SimpleBlockRule(SyntaxRule):
 
         for pos in range(start+1, end-1):
             token = self.token_processor.get_token(pos)
+            next_token = self.token_processor.get_token(pos+1)
             if token == NonTerm.EmptyLine:
                 is_single_line_block = False
-            pos+=1
+            elif token == Identifier and next_token == Tokens[':']:
+                if csharp_indent_labels == 'flush_left':
+                    self.token_processor.set_indent(pos, -1)
+                elif csharp_indent_labels == 'one_less_than_current':
+                    self.token_processor.dec_indent(pos)
+                self.token_processor.set_space_after(pos, '')
+                self.token_processor.set_space_after(pos+1, '\n')
 
         if is_single_line_block and csharp_preserve_single_line_blocks:
+            self.token_processor.set_space_before(start, ' ') # todo: separate rule for {};
             self.token_processor.set_space_after(start, ' ')
             self.token_processor.set_space_before(end-1, ' ')
+            self.token_processor.set_space_after(end-1, '')
         else:
             self.token_processor.set_space_after(start, '\n')
             self.token_processor.set_space_before(end-1, '\n')
-        self.token_processor.set_space_after(end-1, '\n')
+            self.token_processor.set_space_after(end-1, '\n')
 
         # indent
         if csharp_indent_block_contents:
@@ -303,26 +312,6 @@ class UsingRule(SyntaxRule):
         if get_val(s, 0) in [Identifier, NonTerm.ComplexIdentifier] and get_val(s, 1) == Tokens['using']:
             return 2
         return 0
-
-# #template
-# class LineRule(SyntaxRule):
-#     def __init__(self):
-#         self.NodeToken = NonTerm.TopLevel
-#
-#     def check(self, s):
-#         pos=0
-#         #ws = [None]
-#         if get_val(s, pos) == Tokens['\n']:
-#             pos+=1
-#             ws+=[None]
-#             while pos < len(s) and get_val(s, pos) not in [Tokens['{'], Tokens['}'], NonTerm.Line]:
-#                 if get_val(s, pos) in [Tokens['('], Tokens[')']]:
-#                     return 0, None
-#                 pos+=1
-#                 ws+= [None]
-#             return pos, ws
-#         return 0, None
-#         return len(s), [None]*(len(s)+1)
 
 #template
 class ControlFlowRule(SyntaxRule):
@@ -438,4 +427,20 @@ class AnonymousTypeRule(SyntaxRule):
         if get_val(s, 0) == NonTerm.Block:
             if get_val(s, 1) == Tokens['new']:
                 return 2
+        return 0
+
+class CastRule(SyntaxRule):
+    def __init__(self):
+        self.NodeToken = NonTerm.Cast
+
+    def resolve_whitespaces(self, node):
+        start = node.Start
+        end = node.End
+        self.token_processor.set_space_after(start, ' ' if csharp_space_after_cast else '')
+
+    def check(self, s):
+        if get_val(s, 0) in [Identifier, NonTerm.ComplexIdentifier]:
+            if get_val(s, 1) == NonTerm.Parentheses:
+                return 2
+        print("!!!!!")
         return 0

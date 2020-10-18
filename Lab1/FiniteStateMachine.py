@@ -46,7 +46,6 @@ class FiniteStateMachine:
         while True:
             (newState, input) = handler(input)
             if newState.upper() in self.endStates:
-                print("reached ", newState)
                 return newState
             else:
                 handler = self.handlers[newState.upper()]

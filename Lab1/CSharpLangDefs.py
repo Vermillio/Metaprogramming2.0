@@ -23,7 +23,7 @@ Literals = [NumericLiteral, CharacterLiteral, BooleanLiteral, StringLiteral, Int
 
 ArithmeticOperators = ['+','-','*','/','%']
 LogicalOperators = ['||', '&&', '!']
-RelationalOperators = ['>=', '<=', '==', '!=', '<', '>']
+RelationalOperators = ['>=', '<=', '==', '!=', '<', '>', '=>']
 AssignmentOperators = ['+=', '-=', '=']
 BitwiseOperators = ['&', '|', '~', '^', '>>', '<<']
 IncrementOperators=['++', '--']
@@ -68,6 +68,8 @@ ContextualKeywords = [
 'set',	'unmanaged', '(generic type constraint)',	'value',
 'var',	'when', '(filter condition)',	'where', '(generic type constraint)',
 'where', '(query clause)',	'yield']
+
+PreprocessorDirectives = ["#if", "#else", "##elif", "#endif", "#define", "undef", "#warning", "#error", "#line", "#region", "#endregion", "#pragma warning", "#pragma checksum", "#pragma"]
 
 AllTokens = Operators+Punctuators+Keywords+ContextualKeywords
 Tokens = dict.fromkeys(AllTokens)

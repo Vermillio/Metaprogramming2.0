@@ -12,7 +12,7 @@ insert_final_newline = False # !
 # Organize usings
 dotnet_separate_import_directive_groups = False
 dotnet_sort_system_directives_first = False
-file_header_template = None
+#file_header_template = None
 
 #### C# Formatting Rules ####
 
@@ -30,11 +30,11 @@ csharp_indent_block_contents = 1 # !
 csharp_indent_braces = 0 # !
 csharp_indent_case_contents = 1 # !
 csharp_indent_case_contents_when_block = 0 # !
-csharp_indent_labels = -1
+csharp_indent_labels = 'flush_left' # 'no_change' 'one_less_than_current' 'flush_left'
 csharp_indent_switch_labels = 1 # !
 
 # Space preferences
-csharp_space_after_cast = False
+csharp_space_after_cast = False # !
 csharp_space_after_colon_in_inheritance_clause = True # !
 csharp_space_after_comma = True # !
 csharp_space_after_dot = False # !
@@ -60,3 +60,11 @@ csharp_space_between_parentheses = True # !
 # Wrapping preferences
 csharp_preserve_single_line_blocks = True # !
 csharp_preserve_single_line_statements = True
+
+def parse_template(path):
+    if not path:
+        return None
+    template = None
+    with open(path) as f:
+        f.read()
+    return template

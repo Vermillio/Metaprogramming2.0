@@ -2,8 +2,8 @@ from CSharpLangDefs import *
 from config import *
 
 def apply_indent(str, indent):
-    indent_str = indent_size * indent * ('\t' if indent_style == 'tab' else ' ')
-    return str + indent_str if str == '\n' else str
+    indent_str = indent_size * indent * ('\t' if indent_style == 'tab' else ' ') if indent >= 0 else None
+    return str + indent_str if str == '\n' and indent_str else str
 
 class CSharpTokenProcessor:
     tokens=[]
@@ -19,6 +19,11 @@ class CSharpTokenProcessor:
         if i >= len(self.tokens):
             return None
         return self.tokens[i][0]
+
+    def get_str(self, i):
+        if i >= len(self.tokens):
+            return None
+        return self.tokens[i][1]
 
     def index(self, token, start, end):
         for i in range(start, end):
@@ -41,15 +46,18 @@ class CSharpTokenProcessor:
         return self.whitespaces[i+1]
 
     def set_indent(self, i, indent):
-        self.indents[i] = indent
+        if self.indents[i] >= 0:
+            self.indents[i] = indent
 
     def inc_indent(self, i):
-        self.indents[i]+=1
+        if self.indents[i] >= 0:
+            self.indents[i]+=1
 
     def dec_indent(self, i):
-        self.indents[i]-=1
+        if self.indents[i] >= 0:
+            self.indents[i]-=1
 
-    def get_str(self):
+    def get_full_str(self):
         s = [apply_indent(self.tokens[i][1], self.indents[i]) for i in range(len(self.tokens))]
         for i in range(0, len(self.indents)):
             s.insert(2*i, apply_indent(self.whitespaces[i], self.indents[i]))
@@ -73,7 +81,7 @@ class CSharpTokenProcessor:
     def _split_whitespaces_comments(self, tokens):
         pos=0
         new_tokens = []
-        whitespaces = [' ']
+        whitespaces = ['']
         comments = []
         whitespace_set = False
         skip_whitespace = False

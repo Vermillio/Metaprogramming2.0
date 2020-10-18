@@ -1,12 +1,8 @@
+import string
 from FiniteStateMachine import *
 from CSharpLangDefs import *
 
 DebugRecognizerNames = False
-
-# RECOGNITION FUNCTIONS
-
-# todo:
-# ternary operator
 
 def isMultilineCommentStart(str):
     return str.startswith('/*')
@@ -53,7 +49,7 @@ def isWhiteSpace(str):
         return 1, Token.Whitespace, str[:1]
     if str[0]=='\t':
         return 1, Token.Tab, str[:1]
-    if str[0].isspace():
+    if str[0] in string.whitespace:
         return 1, Token.UnknownWhitespace, str[:1]
     return 0, None, None
 
@@ -75,20 +71,28 @@ def isPunctuator(str):
     else:
         return 0, None, None
 
+def isPreprocessorDirective(str):
+    if DebugRecognizerNames:
+        print("isPreprocessorDirective")
+    for p in PreprocessorDirectives:
+        if str.startswith(p):
+            if len(p) >= len(str) or (not str[len(p)].isalnum() and not str[len(p)] in ['_']):
+                return len(p), Token.PreprocessorDirective, str[:len(p)]
+
 def isKeyword(str):
     if DebugRecognizerNames:
         print("isKeyword")
-    for keyword in Keywords:
-        if str.startswith(keyword):
-            if len(keyword) >= len(str) or (not str[len(keyword)].isalnum() and not str[len(keyword)] in ['_']):
-                return len(keyword), Tokens[keyword], str[:len(keyword)]
+    for k in Keywords:
+        if str.startswith(k):
+            if len(k) >= len(str) or (not str[len(k)].isalnum() and not str[len(k)] in ['_']):
+                return len(k), Tokens[k], str[:len(k)]
     return 0, None, None
 
 def isIdentifier(str):
     if DebugRecognizerNames:
         print("isIdentifier")
     if str[0] == '@':
-        size, token, str = isKeyword(str[1:])
+        size, token, s = isKeyword(str[1:])
         if size != 0:
             return size+1, Token.Identifier, str[:size+1]
     if str[0].isalpha() or str[0]=='_':
@@ -259,14 +263,19 @@ class CSharpLexer:
                     isBooleanLiteral,
                     isStringLiteral,
                     isCharacterLiteral,
-                    isNumericLiteral ] # todo: bool literal null literal
+                    isNumericLiteral,
+                    isPreprocessorDirective, ]
 
     def __init__(self, str):
         self.str = str
-        self.pos=0
-        # fsm.add_state()
+        self.reset()
 
     def nextToken(self):
+        if self.pos >= len(self.str):
+            return Token.EndOfInput, ""
+        if set(self.str[self.pos]).difference(string.printable):
+            print("Deleted character " + self.str[self.pos])
+            self.pos+=1
         if self.pos >= len(self.str):
             return Token.EndOfInput, ""
         for recognizer in self.recognizers:
@@ -274,4 +283,8 @@ class CSharpLexer:
             if delta_pos != 0:
                 self.pos += delta_pos
                 return token_type, value
+        print(self.str[self.pos])
         return Token.Error, ""
+
+    def reset(self):
+        self.pos = 0

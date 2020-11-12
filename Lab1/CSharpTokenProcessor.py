@@ -58,16 +58,18 @@ class CSharpTokenProcessor:
             self.indents[i]-=1
 
     def get_full_str(self):
-        s = [apply_indent(self.tokens[i][1], self.indents[i]) for i in range(len(self.tokens))]
-        for i in range(0, len(self.indents)):
-            s.insert(2*i, apply_indent(self.whitespaces[i], self.indents[i]))
+        s = [("token", apply_indent(self.tokens[i][1], self.indents[i])) for i in range(len(self.tokens))]
+        for i in range(len(self.indents)):
+            s.insert(2*i, ("whitespace", apply_indent(self.whitespaces[i], self.indents[i])))
         shift = 0
-        for comment, comment_str, i in self.comments:
-            s = s[:i+shift] + [comment_str] + s[i+shift:]
+        for comment, comment_str, i, j in self.comments:
+            if s[i+shift-1][0] == "token":
+                 comment_str = ' ' + comment_str
+            s = s[:i+shift] + [("comment", comment_str)] + s[i+shift:]
             shift+=1
         if insert_final_newline:
-            s+=['\n']
-        return ''.join(s)
+            s+=[("whitespace", '\n')]
+        return ''.join([i[1] for i in s])
 
     def _remove_double_whitespaces(self, tokens):
         pos = 0
@@ -99,10 +101,10 @@ class CSharpTokenProcessor:
                     whitespace_set = True
             elif tokens[pos][0] in [Token.Comment, Token.CommentMultiline]:
                 if pos+1 < len(tokens) and tokens[pos+1][0] in whitespace_tokens+[Token.Newline]:
-                    comments.append((tokens[pos][0], tokens[pos][1]+tokens[pos+1][1], len(new_tokens)+len(whitespaces) - 0 if whitespace_set else 1))
+                    comments.append((tokens[pos][0], tokens[pos][1]+tokens[pos+1][1], len(new_tokens)+len(whitespaces) - (1 if whitespace_set else 2), len(new_tokens)))
                     skip_whitespace = True
                 else:
-                    comments.append((tokens[pos][0], tokens[pos][1], len(new_tokens)+len(whitespaces) - 0 if whitespace_set else 1))
+                    comments.append((tokens[pos][0], tokens[pos][1], len(new_tokens)+len(whitespaces) - (1 if whitespace_set else 2), len(new_tokens)))
             elif tokens[pos][0] not in whitespace_tokens:
                 new_tokens.append(tokens[pos])
                 whitespaces.append(' ')

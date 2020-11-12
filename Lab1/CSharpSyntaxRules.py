@@ -448,3 +448,27 @@ class CastRule(SyntaxRule):
             if get_val(s, 1) == NonTerm.Parentheses:
                 return 2
         return 0
+
+
+class QueryExpressionRule(SyntaxRule):
+    def __init__(self):
+        self.NodeToken = NonTerm.Expression
+
+    def resolve_whitespaces(self, node):
+        start = node.Start
+        end = node.End
+        for pos in range(start, end):
+            token = self.token_processor.get_token(pos)
+            if token in [Tokens['from'], Tokens['where'], Tokens['select'], Tokens['group'], Tokens['let'], Tokens['orderby']]:
+                self.token_processor.set_space_before(pos, '\n' if csharp_new_line_between_query_expression_clauses else ' ')
+
+    def check(self, s):
+        pos=0
+        if get_val(s, 0) in [Tokens['group'], Tokens['select']]:
+            pos+=1
+            checked = True
+            while not pos >= len(s) and not get_val(s, pos) == Tokens[';']:
+                if get_val(s, pos) == Tokens['in'] and get_val(s, pos+1) == NonTerm.Identifier and get_val(s, pos+2) == Tokens['from']:
+                    return pos+3
+                pos+=1
+        return 0

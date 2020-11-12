@@ -17,7 +17,7 @@ def isMultilineComment(str):
         pos=2
         while pos < len(str) and not isMultilineCommentEnd(str[pos:]):
             pos+=1
-        if pos < len(str)-1 and isMultilineCommentEnd(str[pos:]):
+        if pos < len(str)-2 and isMultilineCommentEnd(str[pos:]):
             return pos+2, Token.CommentMultiline, str[:pos+2]
         return pos, Token.UnfinishedComment, str
     return 0, None, None
@@ -35,7 +35,7 @@ def isComment(str):
         pos=2
         while pos < len(str):
             if isLineEnd(str[pos:]):
-                return pos+1, Token.Comment, str[:pos+1]
+                return pos-1, Token.Comment, str[:pos-1]
             pos+=1
     return 0, None, None
 
@@ -82,7 +82,7 @@ def isPreprocessorDirective(str):
 def isKeyword(str):
     if DebugRecognizerNames:
         print("isKeyword")
-    for k in Keywords:
+    for k in Keywords+ContextualKeywords:
         if str.startswith(k):
             if len(k) >= len(str) or (not str[len(k)].isalnum() and not str[len(k)] in ['_']):
                 return len(k), Tokens[k], str[:len(k)]

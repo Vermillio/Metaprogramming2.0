@@ -2,6 +2,7 @@
 ____
 This python console app formats C# code and saves the result wherever you want on hard drive.
 
+Workd with files, directories, projects.
 Supports Preprocessor, Generics, LINQ.
 
 You can modify formatting settings in the config.py file.

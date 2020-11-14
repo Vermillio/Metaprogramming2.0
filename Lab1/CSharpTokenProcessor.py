@@ -65,6 +65,13 @@ class CSharpTokenProcessor:
         for comment, comment_str, i, j in self.comments:
             if s[i+shift-1][0] == "token":
                  comment_str = ' ' + comment_str
+            k=0
+            comment_indent = self.indents[j] + 1 if (j > 0 and self.tokens[j][1] == '}' and self.tokens[j-1][1] == '{') else self.indents[j-1] if (j > 0 and self.tokens[j][1] == '}') else self.indents[j]
+            while k < len(comment_str):
+                if comment_str[k] == '\n':
+                    tmp_symbol = comment_str[k]
+                    comment_str=comment_str[0:k]+apply_indent(tmp_symbol, comment_indent)+comment_str[k+1:]
+                k+=1
             s = s[:i+shift] + [("comment", comment_str)] + s[i+shift:]
             shift+=1
         if insert_final_newline:
@@ -100,11 +107,13 @@ class CSharpTokenProcessor:
                     pos+=1
                     whitespace_set = True
             elif tokens[pos][0] in [Token.Comment, Token.CommentMultiline]:
+                if whitespace_set:
+                    print("!!!!!")
                 if pos+1 < len(tokens) and tokens[pos+1][0] in whitespace_tokens+[Token.Newline]:
-                    comments.append((tokens[pos][0], tokens[pos][1]+tokens[pos+1][1], len(new_tokens)+len(whitespaces) - (1 if whitespace_set else 2), len(new_tokens)))
+                    comments.append((tokens[pos][0], tokens[pos][1]+tokens[pos+1][1], len(new_tokens)+len(whitespaces) - (1 if whitespace_set else 0), len(new_tokens)))
                     skip_whitespace = True
                 else:
-                    comments.append((tokens[pos][0], tokens[pos][1], len(new_tokens)+len(whitespaces) - (1 if whitespace_set else 2), len(new_tokens)))
+                    comments.append((tokens[pos][0], tokens[pos][1], len(new_tokens)+len(whitespaces) - (1 if whitespace_set else 0), len(new_tokens)))
             elif tokens[pos][0] not in whitespace_tokens:
                 new_tokens.append(tokens[pos])
                 whitespaces.append(' ')

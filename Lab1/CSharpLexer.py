@@ -35,8 +35,9 @@ def isComment(str):
         pos=2
         while pos < len(str):
             if isLineEnd(str[pos:]):
-                return pos-1, Token.Comment, str[:pos-1]
+                return pos, Token.Comment, str[:pos]
             pos+=1
+        return len(str), Token.Comment, str
     return 0, None, None
 
 def isWhiteSpace(str):

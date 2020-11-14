@@ -1,0 +1,1 @@
+format.py --input_path test.cs -f --template template.json

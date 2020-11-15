@@ -15,7 +15,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     if args.template:
-        parse_template(args.template)
+        Settings.parse_template(args.template)
 
     if run_tests() < 1.0:
         print("Some tests failed. Operation stopped. See errors.log")
@@ -26,16 +26,11 @@ if __name__ == "__main__":
                 with open(args.input_path) as fi:
                     print("Processing file " + args.input_path+'\n')
                     errors_log_file.write("Processing file " + args.input_path+'\n')
-                    out_file = args.output_path
                     str = fi.read()
                     beautified_str = CSharpFormatter().beautify(str)
                 if beautified_str!=None:
-                    if args.output_path:
-                        with open(out_file, 'w') as fo:
-                            fo.write(beautified_str)
-                    else:
-                        with open(args.input_path, 'w') as fo:
-                            fo.write(beautified_str)
+                    with open(args.output_path if args.output_path else args.input_path, 'w') as fo:
+                        fo.write(beautified_str)
                     print("Completed.\n\n")
             elif args.directory or args.project:
                 print("\nProcessing directory " + args.input_path+'\n')
@@ -58,8 +53,9 @@ if __name__ == "__main__":
                                 except OSError as exc: # Guard against race condition
                                     if exc.errno != errno.EEXIST:
                                         raise
-                            with open(out_file, 'w') as fo:
-                                fo.write(str)
+                            if str != None:
+                                with open(out_file, 'w') as fo:
+                                    fo.write(str)
                             print("Completed.\n\n")
 
                     for file in csharp_files:
@@ -72,18 +68,14 @@ if __name__ == "__main__":
                             beautified_str = CSharpFormatter().beautify(str)
 
                         if beautified_str!=None:
-                            if args.output_path:
-                                out_file = os.path.join(args.output_path, rel_file)
-                                if not os.path.exists(os.path.dirname(out_file)):
-                                    try:
-                                        os.makedirs(os.path.dirname(out_file))
-                                    except OSError as exc: # Guard against race condition
-                                        if exc.errno != errno.EEXIST:
-                                            raise
-                                with open(out_file, 'w+') as fo:
-                                    fo.write(beautified_str)
-                            else:
-                                with open(args.input_path, 'w+') as fo:
-                                    fo.write(beautified_str)
+                            out_file = os.path.join(args.output_path if args.output_path else args.input_path, rel_file)
+                            if not os.path.exists(os.path.dirname(out_file)):
+                                try:
+                                    os.makedirs(os.path.dirname(out_file))
+                                except OSError as exc: # Guard against race condition
+                                    if exc.errno != errno.EEXIST:
+                                        raise
+                            with open(out_file, 'w') as fo:
+                                fo.write(beautified_str)
                         print("Completed.\n\n")
     print("Completed.")

@@ -47,8 +47,8 @@ class ClassDeclRule(SyntaxRule):
         for pos in range(start, end-1):
             token = self.token_processor.get_token(pos)
             if token == Tokens[':']:
-                self.token_processor.set_space_after(pos, ' ' if csharp_space_after_colon_in_inheritance_clause else '')
-                self.token_processor.set_space_before(pos, ' ' if csharp_space_before_colon_in_inheritance_clause else '')
+                self.token_processor.set_space_after(pos, ' ' if Settings.csharp_space_after_colon_in_inheritance_clause else '')
+                self.token_processor.set_space_before(pos, ' ' if Settings.csharp_space_before_colon_in_inheritance_clause else '')
             else:
                 self.token_processor.set_space_after(pos, ' ')
 
@@ -75,17 +75,17 @@ class MethodDeclRule(SyntaxRule):
         for pos in range(start, end):
             token = self.token_processor.get_token(pos)
             if token == Tokens['(']:
-                self.token_processor.set_space_before(pos, ' ' if csharp_space_between_method_declaration_name_and_open_parenthesis else '')
+                self.token_processor.set_space_before(pos, ' ' if Settings.csharp_space_between_method_declaration_name_and_open_parenthesis else '')
                 if self.token_processor.get_token(pos+1) == Tokens[')']:
-                    self.token_processor.set_space_after(pos, ' ' if csharp_space_between_method_declaration_empty_parameter_list_parentheses else '')
+                    self.token_processor.set_space_after(pos, ' ' if Settings.csharp_space_between_method_declaration_empty_parameter_list_parentheses else '')
                 else:
-                    self.token_processor.set_space_after(pos, ' ' if csharp_space_between_method_declaration_parameter_list_parentheses else '')
+                    self.token_processor.set_space_after(pos, ' ' if Settings.csharp_space_between_method_declaration_parameter_list_parentheses else '')
             elif token == Tokens[')']:
                 if self.token_processor.get_token(pos-1)==Tokens['(']:
-                    self.token_processor.set_space_before(pos, ' ' if csharp_space_between_method_declaration_empty_parameter_list_parentheses else '')
+                    self.token_processor.set_space_before(pos, ' ' if Settings.csharp_space_between_method_declaration_empty_parameter_list_parentheses else '')
                     pass
                 else:
-                    self.token_processor.set_space_before(pos, ' ' if csharp_space_between_method_declaration_parameter_list_parentheses else '')
+                    self.token_processor.set_space_before(pos, ' ' if Settings.csharp_space_between_method_declaration_parameter_list_parentheses else '')
 
     def check(self, s):
         pos = 0
@@ -144,11 +144,11 @@ class SwitchIndentRule(SyntaxRule):
         switch_content = node.Children[1].Children
         for node in switch_content[1:-1]:
             token = node.Val
-            if not csharp_indent_switch_labels:
+            if not Settings.csharp_indent_switch_labels:
                 for i in range(node.Start, node.End):
                     self.token_processor.dec_indent(pos)
-            if ( csharp_indent_case_contents_when_block and token == NonTerm.Block
-                or csharp_indent_case_contents and token not in [NonTerm.Block, Tokens['case'], Tokens['default']]):
+            if ( Settings.csharp_indent_case_contents_when_block and token == NonTerm.Block
+                or Settings.csharp_indent_case_contents and token not in [NonTerm.Block, Tokens['case'], Tokens['default']]):
                 for i in range(node.Start, node.End):
                     self.token_processor.inc_indent(node.Start)
             if token in [Tokens['case'], Tokens['default']]:
@@ -214,13 +214,13 @@ class MethodCallRule(SyntaxRule):
         start = node.Start
         end = node.End
         open_parentheses_pos = node.Children[1].Start
-        self.token_processor.set_space_before(open_parentheses_pos, ' ' if csharp_space_between_method_call_name_and_opening_parenthesis else '')
+        self.token_processor.set_space_before(open_parentheses_pos, ' ' if Settings.csharp_space_between_method_call_name_and_opening_parenthesis else '')
         for pos in range(start, end):
             token = self.token_processor.get_token(pos)
             if token == Tokens['(']:
-                self.token_processor.set_space_after(pos, ' ' if csharp_space_between_method_call_parameter_list_parentheses else '')
+                self.token_processor.set_space_after(pos, ' ' if Settings.csharp_space_between_method_call_parameter_list_parentheses else '')
             elif token == Tokens[')']:
-                self.token_processor.set_space_before(pos, ' ' if csharp_space_between_method_call_parameter_list_parentheses else '')
+                self.token_processor.set_space_before(pos, ' ' if Settings.csharp_space_between_method_call_parameter_list_parentheses else '')
     def check(self, s):
         pos=0
         if get_val(s, pos) == NonTerm.Parentheses:
@@ -267,29 +267,29 @@ class SimpleBlockRule(SyntaxRule):
             if token == NonTerm.EmptyLine:
                 is_single_line_block = False
             elif token == Identifier and next_token == Tokens[':']:
-                if csharp_indent_labels == 'flush_left':
+                if Settings.csharp_indent_labels == 'flush_left':
                     self.token_processor.set_indent(pos, -1)
-                elif csharp_indent_labels == 'one_less_than_current':
+                elif Settings.csharp_indent_labels == 'one_less_than_current':
                     self.token_processor.dec_indent(pos)
                 self.token_processor.set_space_after(pos, '')
                 self.token_processor.set_space_after(pos+1, '\n')
 
-        if is_single_line_block and csharp_preserve_single_line_blocks:
+        if is_single_line_block and Settings.csharp_preserve_single_line_blocks:
             self.token_processor.set_space_before(start, ' ') # todo: separate rule for {};
             self.token_processor.set_space_after(start, ' ')
             self.token_processor.set_space_before(end-1, ' ')
-            self.token_processor.set_space_after(end-1, '')
+            #self.token_processor.set_space_after(end-1, '')
         else:
             self.token_processor.set_space_after(start, '\n')
             self.token_processor.set_space_before(end-1, '\n')
             self.token_processor.set_space_after(end-1, '\n')
 
         # indent
-        if csharp_indent_block_contents:
+        if Settings.csharp_indent_block_contents:
             for pos in range(start+1, end-1):
                 self.token_processor.inc_indent(pos)
 
-        if csharp_indent_braces:
+        if Settings.csharp_indent_braces:
             self.token_processor.inc_indent(start)
             self.token_processor.inc_indent(end-1)
 
@@ -321,14 +321,14 @@ class ControlFlowRule(SyntaxRule):
     def resolve_whitespaces(self, node):
         start = node.Start
         end = node.End
-        self.token_processor.set_space_after(start, ' ' if csharp_space_after_keywords_in_control_flow_statements else '')
+        self.token_processor.set_space_after(start, ' ' if Settings.csharp_space_after_keywords_in_control_flow_statements else '')
         keyword = self.token_processor.get_token(start)
         if keyword == Tokens['for']:
             for pos in range(start+1, end):
                 token = self.token_processor.get_token(pos)
                 if token == Tokens[';']:
-                    self.token_processor.set_space_before(pos, ' ' if csharp_space_before_semicolon_in_for_statement else '')
-                    self.token_processor.set_space_after(pos, ' ' if csharp_space_after_semicolon_in_for_statement else '')
+                    self.token_processor.set_space_before(pos, ' ' if Settings.csharp_space_before_semicolon_in_for_statement else '')
+                    self.token_processor.set_space_after(pos, ' ' if Settings.csharp_space_after_semicolon_in_for_statement else '')
         self.token_processor.set_space_after(end-1, '\n')
         token = self.token_processor.get_token(end)
         if token != None and token != Tokens['{']:
@@ -353,8 +353,8 @@ class ParenthesesRule(SyntaxRule):
     def resolve_whitespaces(self, node):
         start = node.Start
         end = node.End
-        self.token_processor.set_space_after(start, ' ' if csharp_space_between_parentheses else '')
-        self.token_processor.set_space_before(end-1, ' ' if csharp_space_between_parentheses else '')
+        self.token_processor.set_space_after(start, ' ' if Settings.csharp_space_between_parentheses else '')
+        self.token_processor.set_space_before(end-1, ' ' if Settings.csharp_space_between_parentheses else '')
 
     def check(self, s):
         pos=0
@@ -373,12 +373,12 @@ class SquareBracketsRule(SyntaxRule):
         start = node.Start
         end = node.End
         if self.token_processor.get_space_before(start) != '\n':
-            self.token_processor.set_space_before(start, ' ' if csharp_space_before_open_square_brackets else '')
+            self.token_processor.set_space_before(start, ' ' if Settings.csharp_space_before_open_square_brackets else '')
         if end == start+2:
-            self.token_processor.set_space_after(start, ' ' if csharp_space_between_empty_square_brackets else '')
+            self.token_processor.set_space_after(start, ' ' if Settings.csharp_space_between_empty_square_brackets else '')
         else:
-            self.token_processor.set_space_after(start, ' ' if csharp_space_between_square_brackets else '')
-            self.token_processor.set_space_before(end-1, ' ' if csharp_space_between_square_brackets else '')
+            self.token_processor.set_space_after(start, ' ' if Settings.csharp_space_between_square_brackets else '')
+            self.token_processor.set_space_before(end-1, ' ' if Settings.csharp_space_between_square_brackets else '')
         if self.token_processor.get_token(start+1) == Tokens['assembly']:
             if self.token_processor.get_token(start+2) == Tokens[':']:
                 self.token_processor.set_space_after(end-1, '\n')
@@ -404,7 +404,7 @@ class ObjectInitializerRule(SyntaxRule):
         for pos in range(start, end):
             token = self.token_processor.get_token(pos)
             if token == Tokens[',']:
-                self.token_processor.set_space_after(pos, '\n' if csharp_new_line_before_members_in_object_initializers else ' ')
+                self.token_processor.set_space_after(pos, '\n' if Settings.csharp_new_line_before_members_in_object_initializers else ' ')
 
     def check(self, s):
         pos = 0
@@ -412,8 +412,11 @@ class ObjectInitializerRule(SyntaxRule):
             pos+=1
             if get_val(s, pos) == NonTerm.Parentheses:
                 pos+=1
+            if get_val(s, pos) == NonTerm.Generic:
+                pos+=1
             if get_val(s, pos) == Identifier:
-                return pos
+                if get_val(s, pos+1) == Tokens['new']:
+                    return pos+1
         return 0
 
 class AnonymousTypeRule(SyntaxRule):
@@ -426,7 +429,7 @@ class AnonymousTypeRule(SyntaxRule):
         for pos in range(start, end):
             token = self.token_processor.get_token(pos)
             if token == Tokens[',']:
-                self.token_processor.set_space_after(pos, '\n' if csharp_new_line_before_members_in_anonymous_types else ' ')
+                self.token_processor.set_space_after(pos, '\n' if Settings.csharp_new_line_before_members_in_anonymous_types else ' ')
 
     def check(self, s):
         if get_val(s, 0) == NonTerm.Block:
@@ -441,7 +444,7 @@ class CastRule(SyntaxRule):
     def resolve_whitespaces(self, node):
         start = node.Start
         end = node.End
-        self.token_processor.set_space_after(start, ' ' if csharp_space_after_cast else '')
+        self.token_processor.set_space_after(start, ' ' if Settings.csharp_space_after_cast else '')
 
     def check(self, s):
         if get_val(s, 0) in [Identifier, NonTerm.ComplexIdentifier]:
@@ -460,7 +463,7 @@ class QueryExpressionRule(SyntaxRule):
         for pos in range(start, end):
             token = self.token_processor.get_token(pos)
             if token in [Tokens['from'], Tokens['where'], Tokens['select'], Tokens['group'], Tokens['let'], Tokens['orderby']]:
-                self.token_processor.set_space_before(pos, '\n' if csharp_new_line_between_query_expression_clauses else ' ')
+                self.token_processor.set_space_before(pos, '\n' if Settings.csharp_new_line_between_query_expression_clauses else ' ')
 
     def check(self, s):
         pos=0

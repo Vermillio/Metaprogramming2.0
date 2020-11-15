@@ -2,7 +2,7 @@ from CSharpLangDefs import *
 from config import *
 
 def apply_indent(str, indent):
-    indent_str = indent_size * indent * ('\t' if indent_style == 'tab' else ' ') if indent >= 0 else None
+    indent_str = Settings.indent_size * indent * ('\t' if Settings.indent_style == 'tab' else ' ') if indent >= 0 else None
     return str + indent_str if str == '\n' and indent_str else str
 
 class CSharpTokenProcessor:
@@ -74,7 +74,7 @@ class CSharpTokenProcessor:
                 k+=1
             s = s[:i+shift] + [("comment", comment_str)] + s[i+shift:]
             shift+=1
-        if insert_final_newline:
+        if Settings.insert_final_newline:
             s+=[("whitespace", '\n')]
         return ''.join([i[1] for i in s])
 
@@ -107,8 +107,6 @@ class CSharpTokenProcessor:
                     pos+=1
                     whitespace_set = True
             elif tokens[pos][0] in [Token.Comment, Token.CommentMultiline]:
-                if whitespace_set:
-                    print("!!!!!")
                 if pos+1 < len(tokens) and tokens[pos+1][0] in whitespace_tokens+[Token.Newline]:
                     comments.append((tokens[pos][0], tokens[pos][1]+tokens[pos+1][1], len(new_tokens)+len(whitespaces) - (1 if whitespace_set else 0), len(new_tokens)))
                     skip_whitespace = True
@@ -130,22 +128,22 @@ class CSharpTokenProcessor:
         for pos in range(len(self.tokens)):
             token = self.get_token(pos)
             if token == Tokens[',']:
-                self.set_space_before(pos, ' ' if csharp_space_before_comma else '')
-                self.set_space_after(pos, ' ' if csharp_space_after_comma else '')
+                self.set_space_before(pos, ' ' if Settings.csharp_space_before_comma else '')
+                self.set_space_after(pos, ' ' if Settings.csharp_space_after_comma else '')
             elif token == Tokens['.']:
-                self.set_space_before(pos, ' ' if csharp_space_before_dot else '')
-                self.set_space_after(pos, ' ' if csharp_space_after_dot else '')
+                self.set_space_before(pos, ' ' if Settings.csharp_space_before_dot else '')
+                self.set_space_after(pos, ' ' if Settings.csharp_space_after_dot else '')
             elif token in [Tokens[i] for i in BinaryOperators]:
-                self.set_space_before(pos, ' ' if csharp_space_around_binary_operators else '')
-                self.set_space_after(pos, ' ' if csharp_space_around_binary_operators else '')
+                self.set_space_before(pos, ' ' if Settings.csharp_space_around_binary_operators else '')
+                self.set_space_after(pos, ' ' if Settings.csharp_space_around_binary_operators else '')
             elif token == Tokens['catch']:
-                self.set_space_before(pos, '\n' if csharp_new_line_before_catch else ' ')
+                self.set_space_before(pos, '\n' if Settings.csharp_new_line_before_catch else ' ')
             elif token == Tokens['finally']:
-                self.set_space_before(pos, '\n' if csharp_new_line_before_finally else ' ')
+                self.set_space_before(pos, '\n' if Settings.csharp_new_line_before_finally else ' ')
             elif token == Tokens['else']:
-                self.set_space_before(pos, '\n' if csharp_new_line_before_else else ' ')
+                self.set_space_before(pos, '\n' if Settings.csharp_new_line_before_else else ' ')
             elif token == Tokens['{']:
-                self.set_space_before(pos, '\n' if csharp_new_line_before_open_brace else ' ')
+                self.set_space_before(pos, '\n' if Settings.csharp_new_line_before_open_brace else ' ')
             elif token == Tokens[';']:
                 self.set_space_before(pos, '')
                 self.set_space_after(pos, '\n')

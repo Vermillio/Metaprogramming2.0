@@ -2,7 +2,7 @@
 
 Lab1 - C# Formatter
 
-Lab2 - 
+Lab2 - Kotlin Static Analyser
 
 Lab3 -
 

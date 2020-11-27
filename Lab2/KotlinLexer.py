@@ -364,6 +364,11 @@ def countNewlines(str):
             counter+=1
     return counter
 
+class TokenData:
+    def __init__(self, token, str, line):
+        self.token = token
+        self.str = str
+        self.line = line
 
 class KotlinLexer:
 
@@ -402,9 +407,9 @@ class KotlinLexer:
             if delta_pos != 0:
                 line+=countNewlines(self.str[self.pos:self.pos+delta_pos])
                 self.pos += delta_pos
-                return token_type, value, line
+                return TokenData(token_type, value, line)
         print(self.str[self.pos])
-        return Error, ""
+        return TokenData(Error, "", 0)
 
     def reset(self):
         self.pos = 0

@@ -4,13 +4,13 @@ import logging
 class KotlinStyleChecker:
 
     def remove_whitespaces(self, tokens):
-        return [t for t in tokens if t[0] not in ["Whitespace", 'Newline']]
+        return [t for t in tokens if t.token not in ["Whitespace", 'Newline']]
 
     def check_multiline_comment(self, token):
-        if token[0] != 'CommentMultiline':
-            return token[1]
-        str=token[1]
-        line=token[2]
+        if token.token != 'CommentMultiline':
+            return token.str
+        str=token.str
+        line=token.line
         fixed = False
         if str[2] != '*':
             str = str[:2] + '*' + str[2:]
@@ -28,12 +28,12 @@ class KotlinStyleChecker:
     def check_naming(self, tokens):
         prev = tokens[0]
         for token in tokens:
-            if token[0] == 'Identifier':
-                if prev[0] == 'Keyword':
-                    if prev[1] == 'package':
-                        token[1] = self.check_package_name(token)
-                    elif prev[1] == 'class':
-                        token[1] = self.check_class_name(token)
+            if token.token == 'Identifier':
+                if prev.token == 'Keyword':
+                    if prev.str == 'package':
+                        token.str = self.check_package_name(token)
+                    elif prev.str == 'class':
+                        token.str = self.check_class_name(token)
 
     def check_comments(self, tokens):
         for token in tokens:
@@ -44,10 +44,10 @@ class KotlinStyleChecker:
         logging.basicConfig(filename=log_file, encoding='utf-8', level=logging.DEBUG)
         lexer = KotlinLexer(str)
         tokens=[]
-        token, token_str = lexer.nextToken()
-        while token != "EndOfInput":
-            tokens.append((token, token_str))
-            token, token_str = lexer.nextToken()
+        token_data = lexer.nextToken()
+        while token_data.token != "EndOfInput" or token_data.token != "Error":
+            tokens.append(token_data)
+            token_data = lexer.nextToken()
         tokens = self.remove_whitespaces(tokens)
         tokens = self.check_comments(tokens)
         tokens = self.check_naming(tokens)

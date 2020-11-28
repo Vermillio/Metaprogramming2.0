@@ -1,3 +1,6 @@
+import string
+from Lab1.FiniteStateMachine import FiniteStateMachine
+
 Keywords = ['as', 'class', 'break',	'continue',	'do', 'else',
 'for', 'fun', 'false', 'if', 'in', 'interface',
 'super', 'return', 'object', 'package',	'null',	'is',
@@ -16,6 +19,8 @@ Operators = [
 ]
 
 Punctuators = [';', ':', ',', '.', '(', ')', '[', ']', '{', '}']
+
+DebugRecognizerNames = False
 
 def isMultilineCommentStart(str):
     return str.startswith('/*')
@@ -78,6 +83,11 @@ def isPunctuator(str):
 def isIdentifier(str):
     if DebugRecognizerNames:
         print("isIdentifier")
+    if str[0] == '`':
+        pos=0
+        while pos < len(str) and str[pos]!='`':
+            pos+=1
+        return pos, 'Identifier', str[:pos]
     if str[0].isalpha() or str[0]=='_':
         pos = 0
         while pos < len(str) and (str[pos].isalpha() or str[pos].isdigit() or str[pos]=='_'):
@@ -148,7 +158,7 @@ def isStringLiteral(str):
             pos+=1
             Interpolation=True
         if str[pos] == '"':
-            if len(str) > = 6:
+            if len(str) >= 6:
                 if str[pos+1] == '"' and str[pos+2] == '"':
                     # multiline string
                     pos+=3
@@ -370,6 +380,12 @@ class TokenData:
         self.str = str
         self.line = line
 
+    def __str__(self):
+        return self.token + ": " + self.str
+        
+    def __repr__(self):
+        return self.token + ": " + self.str
+
 class KotlinLexer:
 
     pos=0
@@ -386,8 +402,7 @@ class KotlinLexer:
                     isBooleanLiteral,
                     isStringLiteral,
                     isCharacterLiteral,
-                    isNumericLiteral,
-                    isPreprocessorDirective, ]
+                    isNumericLiteral ]
 
     def __init__(self, str):
         self.str = str
@@ -396,20 +411,19 @@ class KotlinLexer:
 
     def nextToken(self):
         if self.pos >= len(self.str):
-            return "EndOfInput", ""
+            return TokenData("EndOfInput", "", 0)
         if set(self.str[self.pos]).difference(string.printable):
             print("Deleted character " + self.str[self.pos])
             self.pos+=1
         if self.pos >= len(self.str):
-            return "EndOfInput", ""
+            return TokenData("EndOfInput", "", 0)
         for recognizer in self.recognizers:
             delta_pos, token_type, value = recognizer(self.str[self.pos:])
             if delta_pos != 0:
-                line+=countNewlines(self.str[self.pos:self.pos+delta_pos])
+                self.line+=countNewlines(self.str[self.pos:self.pos+delta_pos])
                 self.pos += delta_pos
-                return TokenData(token_type, value, line)
-        print(self.str[self.pos])
-        return TokenData(Error, "", 0)
+                return TokenData(token_type, value, self.line)
+        return TokenData("Error", "", 0)
 
     def reset(self):
         self.pos = 0

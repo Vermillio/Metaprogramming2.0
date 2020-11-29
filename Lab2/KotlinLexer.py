@@ -2,21 +2,19 @@ import string
 from Lab1.FiniteStateMachine import FiniteStateMachine
 
 Keywords = ['as', 'class', 'break',	'continue',	'do', 'else',
-'for', 'fun', 'false', 'if', 'in', 'interface',
-'super', 'return', 'object', 'package',	'null',	'is',
-'try', 'throw', 'true', 'this', 'typeof', 'typealias',
-'when',	'while', 'val',	'var']
+    'for', 'fun', 'false', 'if', 'in', 'interface',
+    'super', 'return', 'object', 'package',	'null',	'is',
+    'try', 'throw', 'true', 'this', 'typeof', 'typealias',
+    'when',	'while', 'val',	'var']
 
-Operators = [
-'+', '-', '*', '/', '%', '=',
-'+=', '-=', '*=', '/=', '%=',
-'++', '--',
-'&&', '||', '!',
-'==', '!=',
-'===', '!==',
-'<', '>', '<=', '>='
-'[', ']', '!!', '?.', '?:', '::', '..', ':', '?', '->', '@', ';', '$', '_'
-]
+Operators = ['+', '-', '*', '/', '%', '=',
+    '+=', '-=', '*=', '/=', '%=',
+    '++', '--',
+    '&&', '||', '!',
+    '==', '!=',
+    '===', '!==',
+    '<', '>', '<=', '>='
+    '[', ']', '!!', '?.', '?:', '::', '..', ':', '?', '->', '@', ';', '$', '_']
 
 Punctuators = [';', ':', ',', '.', '(', ')', '[', ']', '{', '}']
 
@@ -201,10 +199,10 @@ class DecLiteralFSM(FiniteStateMachine):
         return 'exit_state', str
 
     def s1_handler(self, str):
-        if str[self.pos].isdigit():
+        if str[self.pos].isdigit() or str[self.pos] == '_':
             self.pos+=1
             return 's1', str
-        if str[self.pos] == '.':
+        if str[self.pos] == '.' and not (self.pos+1 < len(str) and str[self.pos+1] == '.'):
             self.pos+=1
             return 's2', str
         if str[self.pos] == 'E' or str[self.pos] == 'e':
@@ -213,40 +211,40 @@ class DecLiteralFSM(FiniteStateMachine):
         return 'passed', str
 
     def s2_handler(self, str):
-        if str[self.pos].isdigit():
+        if str[self.pos].isdigit() or str[self.pos] == '_':
             self.pos+=1
             return 's3', str
         return 's3', str
 
     def s3_handler(self, str):
-        if str[self.pos].isdigit():
+        if str[self.pos].isdigit() or str[self.pos] == '_':
             self.pos+=1
             return 's3', str
-        if str[self.pos] in ['L', 'f', 'F']:
-            self.pos+=1
-            return 'passed', str
         if str[self.pos] == 'E' or str[self.pos] == 'e':
             self.pos+=1
             return 's4', str
-        return 'exit_state', str
+        if str[self.pos].isalpha():
+            self.pos+=1
+            return 's3', str
+        return 'passed', str
 
     def s4_handler(self, str):
         if str[self.pos] == '+' or str[self.pos] == '-':
             self.pos+=1
             return 's5', str
-        if str[self.pos].isdigit():
+        if str[self.pos].isdigit() or str[self.pos] == '_':
             self.pos+=1
             return 's6', str
         return 'exit_state', str
 
     def s5_handler(self, str):
-        if str[self.pos].isdigit():
+        if str[self.pos].isdigit() or str[self.pos] == '_':
             self.pos+=1
             return 's6', str
         return 'exit_state', str
 
     def s6_handler(self, str):
-        if str[self.pos].isdigit():
+        if str[self.pos].isdigit() or str[self.pos] == '_':
             self.pos+=1
             return 's6', str
         return 'passed', str
@@ -286,13 +284,13 @@ class HexLiteralFSM(FiniteStateMachine):
         return 'exit_state', str
 
     def s2_handler(self, str):
-        if str[self.pos].isdigit() or str[self.pos] in ['A', 'B', 'C', 'D', 'E', 'F']:
+        if str[self.pos].isdigit() or str[self.pos] in ['A', 'B', 'C', 'D', 'E', 'F'] or str[self.pos] == '_':
             self.pos+=1
             return 's3', str
         return 'exit_state', str
 
     def s3_handler(self, str):
-        if str[self.pos].isdigit() or str[self.pos] in ['A', 'B', 'C', 'D', 'E', 'F']:
+        if str[self.pos].isdigit() or str[self.pos] in ['A', 'B', 'C', 'D', 'E', 'F'] or str[self.pos] == '_':
             self.pos+=1
             return 's3', str
         return 'passed', str
@@ -332,13 +330,13 @@ class BinLiteralFSM(FiniteStateMachine):
         return 'exit_state', str
 
     def s2_handler(self, str):
-        if str[self.pos] in ['0', '1']:
+        if str[self.pos] in ['0', '1'] or str[self.pos] == '_':
             self.pos+=1
             return 's3', str
         return 'exit_state', str
 
     def s3_handler(self, str):
-        if str[self.pos] in ['0', '1']:
+        if str[self.pos] in ['0', '1'] or str[self.pos] == '_':
             self.pos+=1
             return 's3', str
         return 'passed', str
@@ -363,7 +361,6 @@ def isNumericLiteral(str):
     state, pos = fsm.run(str)
     if state == 'passed':
         return pos, "Literal", str[:pos]
-
     return 0, None, None
 
 
@@ -382,7 +379,7 @@ class TokenData:
 
     def __str__(self):
         return self.token + ": " + self.str
-        
+
     def __repr__(self):
         return self.token + ": " + self.str
 
@@ -404,7 +401,7 @@ class KotlinLexer:
                     isCharacterLiteral,
                     isNumericLiteral ]
 
-    def __init__(self, str):
+    def __init__(self, str=None):
         self.str = str
         self.reset()
 
@@ -424,6 +421,17 @@ class KotlinLexer:
                 self.pos += delta_pos
                 return TokenData(token_type, value, self.line)
         return TokenData("Error", "", 0)
+
+    def get_tokens(self, str=None):
+        if str!=None:
+            self.str = str
+        self.reset()
+        tokens=[]
+        token_data = self.nextToken()
+        while token_data.token != "EndOfInput" and token_data.token != "Error":
+            tokens.append(token_data)
+            token_data = self.nextToken()
+        return tokens
 
     def reset(self):
         self.pos = 0

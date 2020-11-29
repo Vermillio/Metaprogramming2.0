@@ -120,10 +120,15 @@ class KotlinStyleChecker:
                 elif tokens[i-1].str == 'val':
                     str_from, str_to = self.fix_var_name(tokens[i])
             if str_from != str_to and str_from not in replacements.keys():
-                replacements[str_from] = str_to
+                    while str_to in list(replacements.values()):
+                        str_to += "_"
+                    replacements[str_from] = str_to
+
         for i in private_var_indices:
             str_from, str_to = self.fix_private_var_name(tokens[i]) if self.to_camel_case(tokens[i].str) in replacements.keys() else self.fix_var_name(tokens[i])
             if str_from != str_to and str_from not in replacements.keys():
+                while str_to in list(replacements.values()):
+                    str_to += "_"
                 replacements[str_from] = str_to
 
     def replace(self, strings, replacements):

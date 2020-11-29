@@ -1,13 +1,9 @@
 from Lab2.KotlinLexer import KotlinLexer, TokenData
 import logging
-from sys import stdout
 
 def setup_logger(log_file, level=logging.INFO):
     logging.getLogger().setLevel(level)
     formatter = logging.Formatter('%(message)s')
-    handler = logging.StreamHandler(stdout)
-    handler.setFormatter(formatter)
-    logging.getLogger().addHandler(handler)
     handler = logging.FileHandler(log_file)
     handler.setFormatter(formatter)
     logging.getLogger().addHandler(handler)
@@ -125,7 +121,7 @@ class KotlinStyleChecker:
                     replacements[str_from] = str_to
 
         for i in private_var_indices:
-            str_from, str_to = self.fix_private_var_name(tokens[i]) if self.to_camel_case(tokens[i].str) in replacements.keys() else self.fix_var_name(tokens[i])
+            str_from, str_to = self.fix_private_var_name(tokens[i]) if self.to_camel_case(tokens[i].str) in list(replacements.values()) else self.fix_var_name(tokens[i])
             if str_from != str_to and str_from not in replacements.keys():
                 while str_to in list(replacements.values()):
                     str_to += "_"

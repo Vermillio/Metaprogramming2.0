@@ -12,7 +12,6 @@ def fixup_code_style(input_path):
         rel_dir = os.path.relpath(dir, input_path)
         kotlin_files = fnmatch.filter(files, "*.kt")
         for file in kotlin_files:
-            print("Processing file " + os.path.join(rel_dir, file))
             file_name = os.path.join(dir, file)
             with open(file_name) as f:
                 file_contents.append(f.read())
@@ -21,6 +20,21 @@ def fixup_code_style(input_path):
     for file_name,  file_content in zip(file_names, file_contents):
         with open(file_name, 'w') as f:
             f.write(file_content)
+
+def run_tests() {
+    KotlinStyleChecker().setup_logger("tests.log")
+    file_contents = ["""class C {
+        private val elementList = mutableListOf<Element>()
+
+        val ElementList: List<Element>
+             get() = elementList
+    }"""]
+    expected = """
+    """
+    got = KotlinStyleChecker().fix(file_contents, log_files=["tests.log"])[0]
+    if expected != got:
+        ("One of tests failed")
+}
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Specify input")

@@ -18,8 +18,6 @@ Operators = ['+', '-', '*', '/', '%', '=',
 
 Punctuators = [';', ':', ',', '.', '(', ')', '[', ']', '{', '}']
 
-DebugRecognizerNames = False
-
 def isMultilineCommentStart(str):
     return str.startswith('/*')
 
@@ -27,8 +25,6 @@ def isMultilineCommentEnd(str):
     return str.startswith('*/')
 
 def isMultilineComment(str):
-    if DebugRecognizerNames:
-        print("isMultilineComment")
     if isMultilineCommentStart(str):
         pos=2
         while pos < len(str) and not isMultilineCommentEnd(str[pos:]):
@@ -45,8 +41,6 @@ def isLineEnd(str):
     return str[0] == '\n'
 
 def isComment(str):
-    if DebugRecognizerNames:
-        print("isComment")
     if isCommentStart(str):
         pos=2
         while pos < len(str):
@@ -57,9 +51,6 @@ def isComment(str):
     return 0, None, None
 
 def isWhiteSpace(str):
-    if DebugRecognizerNames:
-        print("isWhiteSpace")
-
     if str[0] == '\n':
         return 1, "Newline", str[:1]
     if str[0] == ' ':
@@ -71,16 +62,12 @@ def isWhiteSpace(str):
     return 0, None, None
 
 def isPunctuator(str):
-    if DebugRecognizerNames:
-        print("isPunctuator")
     if str[0] in Punctuators:
         return 1, "Punctuator", str[:1]
     else:
         return 0, None, None
 
 def isIdentifier(str):
-    if DebugRecognizerNames:
-        print("isIdentifier")
     if str[0] == '`':
         pos=0
         while pos < len(str) and str[pos]!='`':
@@ -94,8 +81,6 @@ def isIdentifier(str):
     return 0, None, None
 
 def isKeyword(str):
-    if DebugRecognizerNames:
-        print("isKeyword")
     for k in Keywords:
         if str.startswith(k):
             if len(k) >= len(str) or (not str[len(k)].isalnum() and not str[len(k)] in ['_']):
@@ -103,8 +88,6 @@ def isKeyword(str):
     return 0, None, None
 
 def isOperator(str):
-    if DebugRecognizerNames:
-        print("isOperator")
     opers = [op for op in Operators if str.startswith(op)]
     opers.sort(key=lambda a: -len(a))
     if len(opers):
@@ -113,16 +96,12 @@ def isOperator(str):
         return 0, None, None
 
 def isNullLiteral(str):
-    if DebugRecognizerNames:
-        print("isNullLiteral")
     if len(str) >= 3 and str.startswith('null'):
         if len(str) == 3 or (not str[4].isalnum() and not str[4] in ['_']):
             return 4, "Literal", str[:4]
     return 0, None, None
 
 def isBooleanLiteral(str):
-    if DebugRecognizerNames:
-        print("isBooleanLiteral")
     if len(str) >= 4 and str.startswith('true'):
         if len(str) == 4 or (not str[5].isalnum() and not str[5] in ['_']):
             return 5, "Literal", str[:5]
@@ -132,8 +111,6 @@ def isBooleanLiteral(str):
     return 0, None, None
 
 def isCharacterLiteral(str):
-    if DebugRecognizerNames:
-        print("isCharacterLiteral")
     if (len(str) >= 7 and str[0]=='\''
        and ( str[1]=='u' or str[1]=='x' )
        and (str[2].isdigit() and str[3].isidigit() and str[4].isdigit() and str[5].isdigit())
@@ -146,8 +123,6 @@ def isCharacterLiteral(str):
     return 0, None, None
 
 def isStringLiteral(str):
-    if DebugRecognizerNames:
-        print("isStringLiteral")
     # todo: String Interpolation
     if len(str) >= 2:
         pos = 0
@@ -173,11 +148,9 @@ def isStringLiteral(str):
     return 0, None, None
 
 class DecLiteralFSM(FiniteStateMachine):
-
-    pos = 0
-
     def __init__(self):
         super().__init__()
+        self.pos=0
         self.add_state('s0', self.s0_handler)
         self.add_state('s1', self.s1_handler)
         self.add_state('s2', self.s2_handler)
@@ -347,8 +320,6 @@ class BinLiteralFSM(FiniteStateMachine):
         return None, str
 
 def isNumericLiteral(str):
-    if DebugRecognizerNames:
-        print("isNumericLiteral")
     fsm = DecLiteralFSM()
     state, pos = fsm.run(str)
     if state == 'passed':
@@ -410,7 +381,6 @@ class KotlinLexer:
         if self.pos >= len(self.str):
             return TokenData("EndOfInput", "", 0)
         if set(self.str[self.pos]).difference(string.printable):
-            print("Deleted character " + self.str[self.pos])
             self.pos+=1
         if self.pos >= len(self.str):
             return TokenData("EndOfInput", "", 0)

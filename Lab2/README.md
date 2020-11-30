@@ -1,7 +1,7 @@
-# Kotlin Style Checker
+# Kotlin Style Check
 ____
 
-This is python package automatically fixes your Kotlin code to follow coding conventions listed here:
+This open-source python package automatically fixes your Kotlin code to follow coding conventions listed here:
 
 https://kotlinlang.org/docs/reference/coding-conventions.html#naming-rules
 
@@ -12,20 +12,27 @@ ____
 
   https://pypi.org/project/kotlin-style-check/
 
-  `pip install kotlin_style_checker`
+  `pip install kotlin_style_check`
 ____
 
 ## RECOMMENDED: Usage from command line: 
 
   Searches for all .kt files in given path and fixes naming and comments errors
 
-  `python -m kotlin_style_checker --input_path`
+  `python -m kotlin_style_check --input_path`
 
 ____
 
 ## Usage as library (generally not recommended for casual users, but you can try):
 
-#### class KotlinStyleChecker
+### Example
+```
+from kotlin_style_check import KotlinStyleChecker
+
+print(KotlinStyleChecker().fix(["val My_Var = 5;"], ["out.log"])) # outputs "val myVar = 5;", logs changes to "out.log"
+```
+
+#### Short description of class KotlinStyleChecker
 
 ```python def fix(self, file_contents, log_files) # file_contents - list of strings (connected files) to fix code style, log_files - list of log files for each item in file_contents
 
@@ -37,5 +44,4 @@ def setup_logger(self, log_file, level=logging.INFO) # needed to log data when c
 
 """ ... other stuff you can find in source code """
 ```
-### class KotlinLexer
-### class FiniteStateMachine
+

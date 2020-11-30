@@ -5,7 +5,7 @@ import fnmatch
 import logging
 import re
 
-__version__ = "0.3"
+__version__ = "0.4"
 
 class KotlinStyleChecker:
     def __init__(self):
@@ -186,8 +186,9 @@ def main():
     parser = argparse.ArgumentParser(description="Specify input path (file or dir)")
     parser.add_argument("--input_path", help="path to check Kotlin code conventions", required=True)
     args = parser.parse_args()
-    run_tests('tests.log')
-    KotlinStyleChecker().fix_in_files(args.input_path)
+    kotlin_style_checker = KotlinStyleChecker()
+    kotlin_style_checker.run_tests('tests.log')
+    kotlin_style_checker.fix_in_files(args.input_path)
 
 if __name__ == "__main__":
     main()

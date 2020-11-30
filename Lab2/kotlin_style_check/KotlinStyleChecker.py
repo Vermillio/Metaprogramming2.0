@@ -5,7 +5,7 @@ import fnmatch
 import logging
 import re
 
-__version__ = "0.1"
+__version__ = "0.3"
 
 class KotlinStyleChecker:
     def __init__(self):

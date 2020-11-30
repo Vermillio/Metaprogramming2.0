@@ -1,9 +1,11 @@
-from KotlinLexer import KotlinLexer, TokenData
+from kotlin_style_check.KotlinLexer import KotlinLexer, TokenData
 import os
 import argparse
 import fnmatch
 import logging
 import re
+
+__version__ = "0.1"
 
 class KotlinStyleChecker:
     def __init__(self):
@@ -180,5 +182,12 @@ class KotlinStyleChecker:
         if expected != got:
             self.logger.info("One of tests failed")
 
-if __name__ == "__main__":
+def main():
+    parser = argparse.ArgumentParser(description="Specify input path (file or dir)")
+    parser.add_argument("--input_path", help="path to check Kotlin code conventions", required=True)
+    args = parser.parse_args()
     run_tests('tests.log')
+    KotlinStyleChecker().fix_in_files(args.input_path)
+
+if __name__ == "__main__":
+    main()

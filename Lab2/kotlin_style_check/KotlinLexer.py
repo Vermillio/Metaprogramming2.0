@@ -1,5 +1,5 @@
 import string
-from FiniteStateMachine import FiniteStateMachine
+from kotlin_style_check.FiniteStateMachine import FiniteStateMachine
 
 Keywords = ['as', 'class', 'break',	'continue',	'do', 'else',
     'for', 'fun', 'false', 'if', 'in', 'interface',

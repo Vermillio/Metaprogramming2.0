@@ -1,12 +1,10 @@
-# Kotlin Static Analyser
+# Kotlin Style Checker
 ____
-This python console app formats C# code and saves the result wherever you want on hard drive (or overwrites existing file if output_path is not specified).
 
-Works with files, directories, projects.
-Supports Preprocessor, Generics, LINQ.
-
-You can use default template.json formatting settings or add your own.
-For description of specific setting go here: https://docs.microsoft.com/en-us/dotnet/fundamentals/code-analysis/style-rules/formatting-rules
+This python library checks Kotlin code conventions usage and fixes them where it can.
 ____
+
+It also can be used from command line
+
 Usage: 
-format.py [-h] --input_path INPUT_PATH [--output_path OUTPUT_PATH] (-f | -d | -p) -t TEMPLATE
+kotlin_style_checker --input_path

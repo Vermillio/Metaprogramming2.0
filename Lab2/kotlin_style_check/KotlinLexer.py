@@ -29,9 +29,9 @@ def isMultilineComment(str):
         pos=2
         while pos < len(str) and not isMultilineCommentEnd(str[pos:]):
             pos+=1
-        if pos < len(str)-2 and isMultilineCommentEnd(str[pos:]):
+        if pos < len(str)-1 and isMultilineCommentEnd(str[pos:]):
             return pos+2, "CommentMultiline", str[:pos+2]
-        return pos, "UnfinishedComment", str
+        return pos+2, "UnfinishedComment", str
     return 0, None, None
 
 def isCommentStart(str):

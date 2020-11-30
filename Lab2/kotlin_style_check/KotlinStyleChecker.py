@@ -5,7 +5,7 @@ import fnmatch
 import logging
 import re
 
-__version__ = "0.4"
+__version__ = "0.5"
 
 class KotlinStyleChecker:
     def __init__(self):
@@ -46,10 +46,13 @@ class KotlinStyleChecker:
         return [t for t in tokens if t.token not in ["Whitespace", 'Newline']]
 
     def fix_multiline_comment(self, str, line):
+        if not '\n' in str:
+            return str, str
         new_str = str if str[2] == '*' else str[:2] + '*' + str[2:]
         new_str = new_str if new_str[3] == '\n' else new_str[:3] + '\n' + new_str[3:]
         new_str = re.sub('\n[ \t]*\*?[ \t]?', '\n * ', new_str)
-        new_str = new_str if new_str[-3] == '\n' else new_str[:-2]+'\n'+new_str[-2:]
+        new_str = new_str if new_str[-3] == ' ' else new_str[:-2]+' '+new_str[-2:]
+        new_str = new_str if new_str[-4] == '\n' else new_str[:-3]+'\n'+new_str[-3:]
         if '@param' in new_str or '@return' in new_str:
             self.logger.warning("line {}: Avoid using @param and @return tags in comments.".format(line))
         if str != new_str:
@@ -166,21 +169,26 @@ class KotlinStyleChecker:
 
     def run_tests(self, log_file):
         self.setup_logger(log_file)
-        file_contents = ["""class C {
+        file_contents = ["""
+        class C {
             private val elementList = mutableListOf<Element>()
             val ElementList: List<Element>
                  get() = elementList
-        }"""]
-        expected = """
+        }""",
+        """/* l\no\ng */""",
+        """/* log */"""]
+        expected = ["""
         class C {
             private val _elementList = mutableListOf<Element>()
             val elementList: List<Element>
                  get() = _elementList
-        }
-        """
-        got = KotlinStyleChecker().fix(file_contents, log_files=["tests.log"])[0]
-        if expected != got:
-            self.logger.info("One of tests failed")
+        }""",
+        """/**\n * l\n * o\n * g\n */""",
+        """/* log */"""]
+        got = KotlinStyleChecker().fix(file_contents, log_files=["tests.log"] * len(file_contents))
+        for e, g in zip(expected, got):
+            if e != g:
+                self.logger.info("TEST FAILED\nExpected:\n\n{}\n\nGot:\n\n{}\n\n".format(e,g))
 
 def main():
     parser = argparse.ArgumentParser(description="Specify input path (file or dir)")

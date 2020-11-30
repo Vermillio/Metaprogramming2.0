@@ -28,10 +28,9 @@ def fix_in_files(self, input_path) # input_path - path to dir or file to fix cod
 def run_tests(self, log_file) # runs small checks
 
 def setup_logger(self, log_file, level=logging.INFO) # needed to log data when calling lower level functions of this class (check_comments for example), overwrites it's global logger
+
+""" ... other stuff you can find in source code """
 ```
-.
-.
-.
 ____
 
 ## Usage from command line: 

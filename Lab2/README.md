@@ -2,13 +2,9 @@
 ____
 
 This python library checks Kotlin code conventions usage and fixes them where it can.
-
-https://kotlinlang.org/docs/reference/coding-conventions.html#naming-rules
-https://kotlinlang.org/docs/reference/coding-conventions.html#documentation-comments
-
 ____
 
 It also can be used from command line
 
-Usage:
+Usage: 
 kotlin_style_checker --input_path

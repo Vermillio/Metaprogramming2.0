@@ -15,7 +15,7 @@ ____
   `pip install kotlin_style_checker`
 ____
 
-## THE SIMPLEST: Usage from command line: 
+## RECOMMENDED: Usage from command line: 
 
   Searches for all .kt files in given path and fixes naming and comments errors
 
@@ -23,7 +23,7 @@ ____
 
 ____
 
-## Usage as library (generally not recommended for simple users, but you can try):
+## Usage as library (generally not recommended for casual users, but you can try):
 
 #### class KotlinStyleChecker
 

@@ -5,7 +5,7 @@ import fnmatch
 import logging
 import re
 
-__version__ = "0.5"
+__version__ = "1.0"
 
 class KotlinStyleChecker:
     def __init__(self):
@@ -16,10 +16,11 @@ class KotlinStyleChecker:
     def setup_logger(self, log_file, level=logging.INFO):
         logger = logging.getLogger('KotlinStyleCheckerLogger')
         logger.setLevel(level)
-        formatter = logging.Formatter('%(message)s')
-        handler = logging.FileHandler(log_file)
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
+        if os.path.abspath(log_file) not in [h.baseFilename for h in logger.handlers if hasattr(h, "baseFilename")]:
+            formatter = logging.Formatter('%(message)s')
+            handler = logging.FileHandler(log_file)
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
 
     def _log_name_fixed(self, line, old_str, new_str, log_name):
         if old_str != new_str:
@@ -50,9 +51,9 @@ class KotlinStyleChecker:
             return str, str
         new_str = str if str[2] == '*' else str[:2] + '*' + str[2:]
         new_str = new_str if new_str[3] == '\n' else new_str[:3] + '\n' + new_str[3:]
-        new_str = re.sub('\n[ \t]*\*?[ \t]?', '\n * ', new_str)
         new_str = new_str if new_str[-3] == ' ' else new_str[:-2]+' '+new_str[-2:]
         new_str = new_str if new_str[-4] == '\n' else new_str[:-3]+'\n'+new_str[-3:]
+        new_str = re.sub('\n[ \t]*\*?[ \t]?', '\n * ', new_str[:-4])+new_str[-4:]
         if '@param' in new_str or '@return' in new_str:
             self.logger.warning("line {}: Avoid using @param and @return tags in comments.".format(line))
         if str != new_str:

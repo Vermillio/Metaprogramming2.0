@@ -49,7 +49,8 @@ class KotlinStyleChecker:
         new_str = str if str[2] == '*' else str[:2] + '*' + str[2:]
         new_str = new_str if new_str[3] == '\n' else new_str[:3] + '\n' + new_str[3:]
         new_str = re.sub('\n[ \t]*\*?[ \t]?', '\n * ', new_str)
-        new_str = new_str if new_str[-3] == '\n' else new_str[:-2]+'\n'+new_str[-2:]
+        new_str = new_str if new_str[-3] == ' ' else new_str[:-2]+' '+new_str[-2:]
+        new_str = new_str if new_str[-4] == '\n' else new_str[:-3]+'\n'+new_str[-3:]
         if '@param' in new_str or '@return' in new_str:
             self.logger.warning("line {}: Avoid using @param and @return tags in comments.".format(line))
         if str != new_str:

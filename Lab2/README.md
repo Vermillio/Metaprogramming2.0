@@ -12,6 +12,8 @@ https://kotlinlang.org/docs/reference/coding-conventions.html#documentation-comm
 ____
 ## Installation
 
+  https://pypi.org/project/kotlin-style-check/
+
   pip install kotlin_style_checker
 ____
 

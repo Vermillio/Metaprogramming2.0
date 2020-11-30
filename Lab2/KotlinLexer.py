@@ -1,5 +1,5 @@
 import string
-from Lab1.FiniteStateMachine import FiniteStateMachine
+from FiniteStateMachine import FiniteStateMachine
 
 Keywords = ['as', 'class', 'break',	'continue',	'do', 'else',
     'for', 'fun', 'false', 'if', 'in', 'interface',

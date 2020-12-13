@@ -6,9 +6,9 @@
 import os
 import sqlite3
 import pandas as pd
-from example import *
+import py2sqlite3.example as example
 
-__version__ = "0.18"
+__version__ = "0.18.7"
 
 python_to_sql_types = {
     type(11): "INTEGER",
@@ -305,8 +305,9 @@ class Py2sqlite3:
             python_to_sql_types[type(var)]
             return var
         except KeyError:
+            inner_name = type(var[0]).__name__ if is_list(type(var)) else type(var).__name__
             #var_name = type(var[0]).__name__ if is_list(type(var)) else type(var).__name__
-            id = self.table_counts[var_name]
+            id = self.table_counts[inner_name]
             queries.append(self._map_object(var))
             if is_list(type(var)):
                 # creating record in connection table
@@ -315,11 +316,11 @@ class Py2sqlite3:
                     values.append(f"\n\t\t({parent_id}, {id})")
                     id += 1
                 values_str = ','.join(values)
-                connection = f"""\nINSERT INTO {parent}_{var_name} ({parent}Id, {var_name}Id) VALUES {values_str};"""
-                self.table_counts[f'{parent}_{var_name}'] += len(values)
+                connection = f"""\nINSERT INTO {parent}_{inner_name} ({parent}Id, {inner_name}Id) VALUES {values_str};"""
+                self.table_counts[f'{parent}_{inner_name}'] += len(values)
                 queries.append(connection)
                 return ""
-            max_q = f"""(SELECT MAX({var_name}Id) FROM {var_name})"""
+            max_q = f"""{id}"""
             return max_q
 
     def _get_inner_relation(self, var_name, inner_name):
@@ -418,11 +419,14 @@ def main():
     """
     print("-----TEST-----")
     py2sql = Py2sqlite3()
+    if os.path.exists('test.db'):
+        os.remove('test.db')
     py2sql.db_connect('test.db')
     print('DB name: ' + py2sql.db_name())
     print("\nUser subclasses:")
-    print(User.__subclasses__())
-    py2sql.save_hierarchy(User)
+    print(example.User.__subclasses__())
+    print("Saving class hierarchy User...")
+    py2sql.save_hierarchy(example.User)
     print("Saved class hierarchy User.")
     print("\nTables:")
     print(py2sql.db_tables())
@@ -436,7 +440,7 @@ def main():
     print("\nSaved object User.")
     py2sql.delete_object(obj)
     print("\nDeleted object User.")
-    py2sql.delete_hierarchy(User)
+    py2sql.delete_hierarchy(example.User)
     print("Deleted class hierarchy User.")
     print("\nDB size: " + str(py2sql.db_size_Mb())+ " Mb\n")
     dataframes = py2sql.db_to_dataframes()

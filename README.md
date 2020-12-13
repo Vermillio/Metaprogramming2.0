@@ -5,3 +5,6 @@ https://iss.csc.knu.ua/files/study/bachelor-degree/metaprogramming/labs/lab-1.pd
 
 Lab 2 - Kotlin Style Checker
 https://iss.csc.knu.ua/files/study/bachelor-degree/metaprogramming/labs/lab-2.pdf
+
+Lab 3 - py2sqlite3
+https://iss.csc.knu.ua/files/study/bachelor-degree/metaprogramming/labs/lab-3.pdf

@@ -3,7 +3,7 @@ import sqlite3
 import pandas as pd
 from py2sqlite3.example import *
 
-__version__ = "0.13"
+__version__ = "0.14"
 
 python_to_sql_types = {
     type(11): "INTEGER",

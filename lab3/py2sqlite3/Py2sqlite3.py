@@ -8,7 +8,7 @@ import sqlite3
 import pandas as pd
 import py2sqlite3.example as example
 
-__version__ = "0.18.7"
+__version__ = "0.19"
 
 python_to_sql_types = {
     type(11): "INTEGER",
@@ -234,6 +234,7 @@ class Py2sqlite3:
         """
             Delete saved python class hierarchy from DB.
         """
+        self.delete_class(root_cls)
         if self.connection:
             c = self.connection.cursor()
             get_all_subclasses = lambda cls: set(cls.__subclasses__()).union(

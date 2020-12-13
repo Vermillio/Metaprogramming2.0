@@ -51,7 +51,7 @@ class Py2SQL:
 
     def db_size_Mb(self):
         if self.db_path:
-            return os.path.getsize(self.db_path) / 1024.0
+            return os.path.getsize(self.db_path) / (1024.0 * 1024.0)
 
     def db_tables(self):
         if self.connection:
@@ -86,6 +86,8 @@ class Py2SQL:
         if self.connection:
             c = self.connection.cursor()
             query = self._map_class(cls)
+            if self.logging:
+                print(query)
             c.executescript(query)
             return True
         return False
@@ -149,41 +151,42 @@ class Py2SQL:
         o = objects[0]
 
         table_name = type(o).__name__
-        #table_id = 1234  # todo: do update from table !!!!
         attributes = o.__dict__
         attribute_names = "ObjectId"
         attributes = [att for att in attributes if not att.startswith('__')]
         for i in range(len(attributes)):
-            att = attributes[i]
-            attribute_names += f", {att}"
+            attr = attributes[i]
+            var = o.__dict__[attr]
+            if not is_list(type(var)):
+                if type(var) == str:
+                    attribute_names += f", {attr}"
+                else:
+                    try:
+                        python_to_sql_types[type(var)]
+                        attribute_names += f", {attr}"
+                    except KeyError:
+                        attribute_names += f", {type(var).__name__}Id"
 
         queries = []
         objects_strings = []
         obj_id = self.table_counts[type(o).__name__]
         for obj in objects:
             self.table_counts[type(o).__name__]+=1;
-            attr = obj.__dict__
             s = f"({self._get_sqlite_type_repr(id(obj), queries, table_name, obj_id)}"
-            # if len(attributes) != 0:
-            #     s += f"({self._get_sqlite_type_repr(attr[attributes[0]], queries)}"
-            # else:
-            #     continue
             for i in range(len(attributes)):
                 a = attributes[i]
-                repr = self._get_sqlite_type_repr(attr[a], queries, table_name, obj_id)
+                repr = self._get_sqlite_type_repr(o.__dict__[a], queries, table_name, obj_id)
                 if repr != "":
                     s += f", {repr}"
             obj_id+=1
             s += ")"
             objects_strings.append(s)
 
-            values = ""
-            for obj_str in objects_strings:
-                values += "\n\t\t" + obj_str
+        for obj_str in objects_strings:
+            obj_str = "\n\t\t" + obj_str
+        values = ','.join(objects_strings)
 
-        res = ""
-        for q in queries:
-            res += q
+        res = "".join(queries)
         res += f"""\nINSERT INTO {table_name}({attribute_names})\n\tVALUES {values};"""
 
         return res
@@ -203,16 +206,12 @@ class Py2SQL:
                 # creating record in connection table
                 values = []
                 for item in var:
-                    # todo change how counter increases with real keys in table
-                    values.append(f"({parent_id}, {id})")
+                    values.append(f"\n\t\t({parent_id}, {id})")
                     id += 1
-                values_str = ""
-                for v in values:
-                    values_str += f"\n\t\t{v}"
-                connection = f"""\nINSERT INTO {parent}_{var_name} VALUES {values_str};"""
+                values_str = ','.join(values)
+                connection = f"""\nINSERT INTO {parent}_{var_name} ({parent}Id, {var_name}Id) VALUES {values_str};"""
                 self.table_counts[f'{parent}_{var_name}'] += len(values)
                 queries.append(connection)
-
                 return ""
             max_q = f"""(SELECT MAX({var_name}Id) FROM {var_name})"""
             return max_q
@@ -267,7 +266,7 @@ class Py2SQL:
 
         # Every table gets new id by default even if it class had field like Id, ClassId etc.
         table_fields = f"\t[{table_name}Id] INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL"
-        table_fields+=",\n\t\t[ObjectId] TEXT"
+        table_fields+=",\n\t\t[ObjectId] INTEGER"
         for attr in attributes:
             if not attr.startswith('__'):
                 try:
@@ -307,6 +306,8 @@ class Py2SQL:
 
 print(py2sql._map_object(class_structure_example.User()))
 print(py2sql._map_object(class_structure_example.User()))
+
+print(class_structure_example.User.__dict__)
 
 py2sql = Py2SQL()
 py2sql.db_connect('my.db')

@@ -1,7 +1,7 @@
 import os
 import sqlite3
 import pandas as pd
-from py2sqlite3 import example
+from py2sqlite3.example import *
 
 __version__ = "0.12"
 
@@ -25,7 +25,7 @@ class Py2sqlite3:
 
     tables_dict = {}
     table_counts = {}
-    logging = True
+    logging = False
 
     def __init__(self):
         self.connection = None
@@ -133,13 +133,20 @@ class Py2sqlite3:
     def save_hierarchy(self, root_cls) -> bool:
         if self.connection:
             c = self.connection.cursor()
-            query = self._map_class(cls)
+            query = self._map_class(root_cls)
+            if self.logging:
+                print(query)
             c.executescript(query)
             get_all_subclasses = lambda cls: set(cls.__subclasses__()).union(
                 [s for c in cls.__subclasses__() for s in get_all_subclasses(c)])
             subclasses = get_all_subclasses(root_cls)
-            for s in subclasses:
-                query = self._map_class(s)
+#            print(subclasses)
+#            print(root_cls)
+#            print(root_cls.__subclasses__())
+            for cls in subclasses:
+                query = self._map_class(cls)
+                if self.logging:
+                    print(query)
                 c.executescript(query)
             return True
         return False
@@ -167,7 +174,7 @@ class Py2sqlite3:
             return True
         return False
 
-    def delete_hierarchy(self, root_class) -> bool:
+    def delete_hierarchy(self, root_cls) -> bool:
         if self.connection:
             c = self.connection.cursor()
             get_all_subclasses = lambda cls: set(cls.__subclasses__()).union(
@@ -344,14 +351,16 @@ class Py2sqlite3:
         query_string += f"\n\n{class_query}"
         return query_string
 
-
 def main():
     print("-----TEST-----")
+    os.remove('test.db')
     py2sql = Py2sqlite3()
     py2sql.db_connect('test.db')
     print('DB name: ' + py2sql.db_name())
-    py2sql.save_class(example.User)
-    print("Saved class User.")
+    py2sql.save_hierarchy(User)
+    print("\nUser subclasses:")
+    print(User.__subclasses__())
+    print("Saved class hierarchy User.")
     print("\nTables:")
     print(py2sql.db_tables())
     print("\nTable counts:")
@@ -364,8 +373,8 @@ def main():
     print("\nSaved object User.")
     py2sql.delete_object(obj)
     print("\nDeleted object User.")
-    py2sql.delete_class(example.MovieList)
-    print("Deleted class User.")
+    py2sql.delete_hierarchy(User)
+    print("Deleted class hierarchy User.")
     print("\nDB size: " + str(py2sql.db_size_Mb())+ " Mb\n")
     dataframes = py2sql.db_to_dataframes()
     for df in dataframes:
@@ -373,4 +382,3 @@ def main():
         print(dataframes[df].head(20))
     py2sql.db_disconnect()
     os.remove('test.db')
-main()

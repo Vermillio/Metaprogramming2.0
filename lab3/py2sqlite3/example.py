@@ -1,4 +1,3 @@
-
 class Movie:
     def __init__(self, name='', year=0):
         self.name = name
@@ -16,3 +15,10 @@ class User:
         self.name = "Anna"
         self.email = "tmp@gmail.com"
         self.likes = MovieList("likes")
+
+class PremiumUser(User):
+    def __init__(self):
+        self.name = "Premium"
+        self.email = "premium@gmail.com"
+        self.likes = MovieList("likes")
+        self.dislikes = MovieList("dislikes")

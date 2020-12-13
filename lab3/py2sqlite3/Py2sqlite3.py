@@ -1,3 +1,8 @@
+"""
+    Class Py2sqlite3 single-handedly manages operations between Python and SQL.
+    Main function contains small functionality test.
+"""
+
 import os
 import sqlite3
 import pandas as pd
@@ -14,88 +19,123 @@ python_to_sql_types = {
 }
 
 def get_sql_type(python_type: type) -> str:
+    """
+        Try map type to primitive SQL types.
+    """
     return python_to_sql_types[python_type]
 
 
 def is_list(python_type: type) -> bool:
+    """
+        Check object type is list.
+    """
     list_obj = []
     return python_type == type(list_obj)#isinstance(python_type(), type(list_obj))
 
 class Py2sqlite3:
 
-    tables_dict = {}
+
+    table_conn_dict = {}
+    """
+        Contains many-to-many connections between tables as unoriented graph.
+        Needs to be updated with db_update() if db is changed from outside.
+    """
+
     table_counts = {}
-    logging = False
+    """
+        Contains row counts for each tables.
+        Needs to be updated with db_update() if db is changed from outside.
+    """
+
+    _logging = False
+    """
+        Logs queries to stdout if True.
+    """
 
     def __init__(self):
         self.connection = None
 
     def db_connect(self, db_path : str):
+        """
+            Establish DB connection. It's open while db_disconnect() is not called.
+        """
         self.connection = sqlite3.connect(db_path)
         self.db_path = db_path
         self.db_update()
 
-    """
-    fetch data from db and update inner variables according to changes
-    """
+
     def db_update(self):
+        """
+            fetch data from db and update @table_conn_dict, @table_counts according to changes
+        """
         tables = self.db_tables()
         for t in tables:
-            self.tables_dict[t] = []
+            self.table_conn_dict[t] = []
             self.table_counts[t] = self.db_table_count(t)
 
     def db_disconnect(self):
+        """
+            Close DB connection if it's open.
+        """
         if self.connection:
             self.connection.close()
         self.db_path = None
-        self.tables_dict = {}
+        self.table_conn_dict = {}
         self.table_counts = {}
 
-    def db_name(self):
+    def db_name(self) -> str:
+        """
+            Get path to DB file.
+        """
         return self.db_path
 
-    """
-    size of db file in Mb
-    """
+
     def db_size_Mb(self):
+        """
+            size of db file in Mb
+        """
         if self.db_path:
             return os.path.getsize(self.db_path) / (1024.0 * 1024.0)
         return None
 
-    """
-    list all tables from db
-    """
-    def db_tables(self):
+
+    def db_tables(self) -> list:
+        """
+            list all tables from db
+        """
         if self.connection:
             c = self.connection.cursor()
             tables = c.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
             return [t[0] for t in tables]
-        return None
+        return []
 
-    """
-    for each table column returns
-        (index, name, data_type, can_be_null, default_value, is_primary_key)
-    """
-    def db_table_structure(self, table):
+
+    def db_table_structure(self, table) -> list:
+        """
+            for each table column returns
+                (index, name, data_type, can_be_null, default_value, is_primary_key)
+        """
         if self.connection:
             c = self.connection.cursor()
             meta = c.execute(f"PRAGMA table_info('{table}')").fetchall()
             return meta
-        return None
+        return []
 
-    """
-    gets table rows count
-    """
+
     def db_table_count(self, table):
+        """
+            gets table rows count
+        """
         if self.connection:
             c = self.connection.cursor()
             return len(c.execute(f'select * from {table};').fetchall())
         return None
 
-    """
-    gets table counts from db
-    """
+
     def db_table_counts(self):
+        """
+            gets table counts from db
+        """
         tables = self.db_tables()
         table_counts = {}
         for t in tables:
@@ -103,6 +143,9 @@ class Py2sqlite3:
         return table_counts
 
     def db_to_dataframes(self):
+        """
+            gets table counts from db
+        """
         dataframes = {}
         if self.connection:
             tables = self.db_tables()
@@ -110,71 +153,87 @@ class Py2sqlite3:
                 dataframes[t] = pd.read_sql_query(f"SELECT * FROM {t}", self.connection)
             return dataframes
 
-    def save_object(self, object) -> bool:
+    def save_object(self, object : object) -> bool:
+        """
+            Map python object to SQL and save to DB.
+            Object class must be saved for this to work correctly.
+        """
         if self.connection:
             c = self.connection.cursor()
             query = self._map_object(object)
-            if self.logging:
+            if self._logging:
                 print(query)
             c.executescript(query)
             return True
         return False
 
-    def save_class(self, cls) -> bool:
+    def save_class(self, cls : type) -> bool:
+        """
+            Map python class to SQL and save to DB.
+        """
         if self.connection:
             c = self.connection.cursor()
             query = self._map_class(cls)
-            if self.logging:
+            if self._logging:
                 print(query)
             c.executescript(query)
             return True
         return False
 
-    def save_hierarchy(self, root_cls) -> bool:
+    def save_hierarchy(self, root_cls : type) -> bool:
+        """
+            Map python class and it's subclasses recursively to SQL and save to DB.
+        """
         if self.connection:
             c = self.connection.cursor()
             query = self._map_class(root_cls)
-            if self.logging:
+            if self._logging:
                 print(query)
             c.executescript(query)
             get_all_subclasses = lambda cls: set(cls.__subclasses__()).union(
                 [s for c in cls.__subclasses__() for s in get_all_subclasses(c)])
             subclasses = get_all_subclasses(root_cls)
-#            print(subclasses)
-#            print(root_cls)
-#            print(root_cls.__subclasses__())
             for cls in subclasses:
                 query = self._map_class(cls)
-                if self.logging:
+                if self._logging:
                     print(query)
                 c.executescript(query)
             return True
         return False
 
-    def delete_object(self, object) -> bool:
+    def delete_object(self, object : object) -> bool:
+        """
+            Delete saved python object from DB.
+        """
         if self.connection:
             c = self.connection.cursor()
             c.execute(f'DELETE FROM {type(object).__name__} WHERE PythonId={id(object)}' )
             return True
         return False
 
-    def delete_class(self, cls) -> bool:
+    def delete_class(self, cls : type) -> bool:
+        """
+            Delete saved python class from DB.
+        """
         if self.connection:
             c = self.connection.cursor()
             cls_name=cls.__name__
             query=f'DROP TABLE IF EXISTS {cls_name};'
-            for other_table in self.tables_dict[cls_name]:
+            for other_table in self.table_conn_dict[cls_name]:
                 query+=f'DROP TABLE IF EXISTS {cls_name}_{other_table};'
                 query+=f'DROP TABLE IF EXISTS {other_table}_{cls_name};'
-                self.tables_dict[other_table].remove(cls_name)
-            self.tables_dict.pop(cls_name)
-            if self.logging:
+                self.table_conn_dict[other_table].remove(cls_name)
+            self.table_conn_dict.pop(cls_name)
+            if self._logging:
                 print(query)
             c.execute(query)
             return True
         return False
 
-    def delete_hierarchy(self, root_cls) -> bool:
+    def delete_hierarchy(self, root_cls : type) -> bool:
+        """
+            Delete saved python class hierarchy from DB.
+        """
         if self.connection:
             c = self.connection.cursor()
             get_all_subclasses = lambda cls: set(cls.__subclasses__()).union(
@@ -281,8 +340,8 @@ class Py2sqlite3:
     def _build_many_to_many_relation(self, inner_table_queries, inner_type, table_name):
         inner_name = inner_type.__name__
         inner_query = self._map_class(inner_type)
-        self.tables_dict[inner_name].append(table_name)
-        self.tables_dict[table_name].append(inner_name)
+        self.table_conn_dict[inner_name].append(table_name)
+        self.table_conn_dict[table_name].append(inner_name)
         self.table_counts[f'{table_name}_{inner_name}'] = 0
         # Creating table for inner object class if needed
         inner_table_queries.append(inner_query)
@@ -306,7 +365,7 @@ class Py2sqlite3:
         class_object = class_type()
         attributes = class_object.__dict__
         table_name = class_type.__name__
-        self.tables_dict[table_name] = []
+        self.table_conn_dict[table_name] = []
         if table_name not in self.table_counts.keys():
             self.table_counts[table_name] = 0
 
@@ -352,8 +411,10 @@ class Py2sqlite3:
         return query_string
 
 def main():
+    """
+        Simple functionality test with stdout _logging.
+    """
     print("-----TEST-----")
-    os.remove('test.db')
     py2sql = Py2sqlite3()
     py2sql.db_connect('test.db')
     print('DB name: ' + py2sql.db_name())

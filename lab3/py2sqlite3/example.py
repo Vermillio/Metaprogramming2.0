@@ -1,3 +1,7 @@
+"""
+    Example class hierarchy with many-to-many, one-to-many relations.
+"""
+
 class Movie:
     def __init__(self, name='', year=0):
         self.name = name

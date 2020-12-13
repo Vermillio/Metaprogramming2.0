@@ -6,9 +6,9 @@
 import os
 import sqlite3
 import pandas as pd
-from py2sqlite3.example import *
+from example import *
 
-__version__ = "0.14"
+__version__ = "0.18"
 
 python_to_sql_types = {
     type(11): "INTEGER",
@@ -47,7 +47,7 @@ class Py2sqlite3:
         Needs to be updated with db_update() if db is changed from outside.
     """
 
-    _logging = False
+    _logging = True
     """
         Logs queries to stdout if True.
     """
@@ -271,17 +271,17 @@ class Py2sqlite3:
                         python_to_sql_types[type(var)]
                         attribute_names += f", {attr}"
                     except KeyError:
-                        attribute_names += f", {type(var).__name__}Id"
+                        attribute_names += f", {attr}Id"
 
         queries = []
         objects_strings = []
         obj_id = self.table_counts[type(o).__name__]
         for obj in objects:
             self.table_counts[type(o).__name__]+=1;
-            s = f"({self._get_sqlite_type_repr(id(obj), queries, table_name, obj_id)}"
+            s = f"({self._get_sqlite_type_repr('ObjectId', id(obj), queries, table_name, obj_id)}"
             for i in range(len(attributes)):
                 a = attributes[i]
-                repr = self._get_sqlite_type_repr(obj.__dict__[a], queries, table_name, obj_id)
+                repr = self._get_sqlite_type_repr(a, obj.__dict__[a], queries, table_name, obj_id)
                 if repr != "":
                     s += f", {repr}"
             obj_id+=1
@@ -298,14 +298,14 @@ class Py2sqlite3:
         return res
 
 
-    def _get_sqlite_type_repr(self, var, queries=[], parent="", parent_id=1) -> str:
+    def _get_sqlite_type_repr(self, var_name, var, queries=[], parent="", parent_id=1) -> str:
         if type(var) == str:
             return f"\"{var}\""
         try:
             python_to_sql_types[type(var)]
             return var
         except KeyError:
-            var_name = type(var[0]).__name__ if is_list(type(var)) else type(var).__name__
+            #var_name = type(var[0]).__name__ if is_list(type(var)) else type(var).__name__
             id = self.table_counts[var_name]
             queries.append(self._map_object(var))
             if is_list(type(var)):
@@ -322,18 +322,18 @@ class Py2sqlite3:
             max_q = f"""(SELECT MAX({var_name}Id) FROM {var_name})"""
             return max_q
 
-    def _get_inner_relation(self, inner_name):
-        table_relation_to_inner_table = f",\n\t\t[{inner_name}Id] INTEGER NOT NULL"
-        table_relation_to_inner_table += f",\n\t\tFOREIGN KEY ([{inner_name}Id]) REFERENCES \"{inner_name}\"([{inner_name}Id])"
-        table_relation_to_inner_table += f"\n\t\t\t\tON DELETE NO ACTION ON UPDATE NO ACTION"
-        return table_relation_to_inner_table
+    def _get_inner_relation(self, var_name, inner_name):
+        table_relation_to_inner_table = f",\n\t\t{var_name}Id INTEGER NOT NULL"
+        foreign_key = f",\n\t\tFOREIGN KEY ({var_name}Id) REFERENCES {inner_name}({inner_name}Id)"
+        foreign_key += f"\n\t\t\t\tON DELETE NO ACTION ON UPDATE NO ACTION"
+        return table_relation_to_inner_table, foreign_key
 
 
-    def _get_outer_relation(self, table_name):
-        remote_relation = f",\n\t\t[{table_name}] INTEGER NOT NULL"
-        remote_relation += f",\n\t\tFOREIGN KEY ([{table_name}Id]) REFERENCES \"{table_name}\"([{table_name}Id])"
-        remote_relation += f"\n\t\t\t\tON DELETE NO ACTION ON UPDATE NO ACTION"
-        return remote_relation
+    def _get_outer_relation(self, var_name, table_name):
+        remote_relation = f",\n\t\t{var_name} INTEGER NOT NULL"
+        foreign_key = f",\n\t\tFOREIGN KEY ({var_name}Id) REFERENCES {table_name}({table_name}Id)"
+        foreign_key += f"\n\t\t\t\tON DELETE NO ACTION ON UPDATE NO ACTION"
+        return remote_relation, foreign_key
 
 
     # Adds queries for inner object class and for connection table to @inner_table_queries
@@ -355,8 +355,8 @@ class Py2sqlite3:
         (
             {table_name}Id INTEGER,
             {inner_name}Id INTEGER,
-            FOREIGN KEY({table_name}Id) REFERENCES \"{table_name}\"({table_name}Id),
-            FOREIGN KEY({inner_name}Id) REFERENCES \"{inner_name}\"({inner_name}Id)
+            FOREIGN KEY({table_name}Id) REFERENCES {table_name}({table_name}Id),
+            FOREIGN KEY({inner_name}Id) REFERENCES {inner_name}({inner_name}Id)
         );
                             """
         return connection_table_query
@@ -372,12 +372,13 @@ class Py2sqlite3:
         inner_table_queries = []
 
         # Every table gets new id by default even if it class had field like Id, ClassId etc.
-        table_fields = f"\t[{table_name}Id] INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL"
-        table_fields+=",\n\t\t[PythonId] INTEGER"
+        table_fields = f"\t{table_name}Id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL"
+        table_fields+=",\n\t\tPythonId INTEGER"
+        foreign_keys = ""
         for attr in attributes:
             if not attr.startswith('__'):
                 try:
-                    table_fields += f",\n\t\t[{attr}] {get_sql_type(type(attributes[attr]))}"
+                    table_fields += f",\n\t\t{attr} {get_sql_type(type(attributes[attr]))}"
                 # We did not find SQLite translatable type so it must be object of other type call it @inner_class
                 except KeyError:
                     # Actions if we saw inner class list - many to many relation or one to many (we take it as same)
@@ -391,10 +392,11 @@ class Py2sqlite3:
                     # Actions if we saw inner class object - one to one relation
                     else:
                         inner_name = type(attributes[attr]).__name__
-                        relation_to_inner_table = self._get_inner_relation(inner_name)
+                        relation_to_inner_table, foreign_key = self._get_inner_relation(attr, inner_name)
                         table_fields += relation_to_inner_table
+                        foreign_keys += foreign_key
                         # Relation passed to inner class table as foreign key to connect with parent on one to one basis
-                        #remote_relation = self._get_outer_relation(table_name)
+                        #remote_relation, foreign_key = self._get_outer_relation(attr, table_name)
 
                         inner_query = self._map_class(type(attributes[attr]))#, parent_relation=remote_relation)
                         inner_table_queries.append(inner_query)
@@ -402,7 +404,7 @@ class Py2sqlite3:
         query_string = ""
         class_query = f"""CREATE TABLE IF NOT EXISTS {table_name}
         (
-        {table_fields}{parent_relation}
+        {table_fields}{foreign_keys}{parent_relation}
         );"""
         inner_table_queries.reverse()
         for inner_query in inner_table_queries:
@@ -418,9 +420,9 @@ def main():
     py2sql = Py2sqlite3()
     py2sql.db_connect('test.db')
     print('DB name: ' + py2sql.db_name())
-    py2sql.save_hierarchy(User)
     print("\nUser subclasses:")
     print(User.__subclasses__())
+    py2sql.save_hierarchy(User)
     print("Saved class hierarchy User.")
     print("\nTables:")
     print(py2sql.db_tables())

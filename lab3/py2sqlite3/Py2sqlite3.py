@@ -3,7 +3,7 @@ import sqlite3
 import pandas as pd
 from py2sqlite3 import example
 
-__version__ = "0.11"
+__version__ = "0.12"
 
 python_to_sql_types = {
     type(11): "INTEGER",
@@ -372,5 +372,5 @@ def main():
         print(df)
         print(dataframes[df].head(20))
     py2sql.db_disconnect()
-
+    os.remove('test.db')
 main()

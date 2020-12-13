@@ -1,9 +1,9 @@
 import os
 import sqlite3
 import pandas as pd
-import example
+from py2sqlite3 import example
 
-__version__ = "0.1"
+__version__ = "0.11"
 
 python_to_sql_types = {
     type(11): "INTEGER",

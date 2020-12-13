@@ -300,9 +300,9 @@ class Py2sqlite3:
         attributes = class_object.__dict__
         table_name = class_type.__name__
         self.tables_dict[table_name] = []
-        if table_name not in self.table_counts[table_name].keys():
+        if table_name not in self.table_counts.keys():
             self.table_counts[table_name] = 0
-            
+
         inner_table_queries = []
 
         # Every table gets new id by default even if it class had field like Id, ClassId etc.

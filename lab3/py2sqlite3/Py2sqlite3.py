@@ -1,15 +1,17 @@
 import os
 import sqlite3
-import class_structure_example
+import pandas as pd
+import example
+
+__version__ = "0.1"
 
 python_to_sql_types = {
     type(11): "INTEGER",
     type("ta"): "TEXT",
     type(1.1): "REAL",
-    type(True): "INTEGER",  # SQLite stores bool values as integers
+    type(True): "INTEGER",  # sqlite stores bool values as integers
     type(None): "NULL"
 }
-
 
 def get_sql_type(python_type: type) -> str:
     return python_to_sql_types[python_type]
@@ -17,9 +19,9 @@ def get_sql_type(python_type: type) -> str:
 
 def is_list(python_type: type) -> bool:
     list_obj = []
-    return isinstance(python_type(), type(list_obj))
+    return python_type == type(list_obj)#isinstance(python_type(), type(list_obj))
 
-class Py2SQL:
+class Py2sqlite3:
 
     tables_dict = {}
     table_counts = {}
@@ -28,11 +30,14 @@ class Py2SQL:
     def __init__(self):
         self.connection = None
 
-    def db_connect(self, db_path):
+    def db_connect(self, db_path : str):
         self.connection = sqlite3.connect(db_path)
         self.db_path = db_path
         self.db_update()
 
+    """
+    fetch data from db and update inner variables according to changes
+    """
     def db_update(self):
         tables = self.db_tables()
         for t in tables:
@@ -49,10 +54,17 @@ class Py2SQL:
     def db_name(self):
         return self.db_path
 
+    """
+    size of db file in Mb
+    """
     def db_size_Mb(self):
         if self.db_path:
             return os.path.getsize(self.db_path) / (1024.0 * 1024.0)
+        return None
 
+    """
+    list all tables from db
+    """
     def db_tables(self):
         if self.connection:
             c = self.connection.cursor()
@@ -60,19 +72,45 @@ class Py2SQL:
             return [t[0] for t in tables]
         return None
 
+    """
+    for each table column returns
+        (index, name, data_type, can_be_null, default_value, is_primary_key)
+    """
     def db_table_structure(self, table):
-        return NotImplemented
+        if self.connection:
+            c = self.connection.cursor()
+            meta = c.execute(f"PRAGMA table_info('{table}')").fetchall()
+            return meta
+        return None
 
+    """
+    gets table rows count
+    """
     def db_table_count(self, table):
         if self.connection:
             c = self.connection.cursor()
             return len(c.execute(f'select * from {table};').fetchall())
         return None
 
+    """
+    gets table counts from db
+    """
     def db_table_counts(self):
-        return self.table_counts
+        tables = self.db_tables()
+        table_counts = {}
+        for t in tables:
+            table_counts[t] = self.db_table_count(t)
+        return table_counts
 
-    def save_object(self, object):
+    def db_to_dataframes(self):
+        dataframes = {}
+        if self.connection:
+            tables = self.db_tables()
+            for t in tables:
+                dataframes[t] = pd.read_sql_query(f"SELECT * FROM {t}", self.connection)
+            return dataframes
+
+    def save_object(self, object) -> bool:
         if self.connection:
             c = self.connection.cursor()
             query = self._map_object(object)
@@ -82,7 +120,7 @@ class Py2SQL:
             return True
         return False
 
-    def save_class(self, cls):
+    def save_class(self, cls) -> bool:
         if self.connection:
             c = self.connection.cursor()
             query = self._map_class(cls)
@@ -92,7 +130,7 @@ class Py2SQL:
             return True
         return False
 
-    def save_hierarchy(self, root_cls):
+    def save_hierarchy(self, root_cls) -> bool:
         if self.connection:
             c = self.connection.cursor()
             query = self._map_class(cls)
@@ -106,14 +144,14 @@ class Py2SQL:
             return True
         return False
 
-    def delete_object(self, object):
+    def delete_object(self, object) -> bool:
         if self.connection:
             c = self.connection.cursor()
-            c.execute(f'DELETE FROM {type(object).__name__} WHERE ObjectId={id(object)}' )
+            c.execute(f'DELETE FROM {type(object).__name__} WHERE PythonId={id(object)}' )
             return True
         return False
 
-    def delete_class(self, cls):
+    def delete_class(self, cls) -> bool:
         if self.connection:
             c = self.connection.cursor()
             cls_name=cls.__name__
@@ -123,11 +161,13 @@ class Py2SQL:
                 query+=f'DROP TABLE IF EXISTS {other_table}_{cls_name};'
                 self.tables_dict[other_table].remove(cls_name)
             self.tables_dict.pop(cls_name)
+            if self.logging:
+                print(query)
             c.execute(query)
             return True
         return False
 
-    def delete_hierarchy(self, root_class):
+    def delete_hierarchy(self, root_class) -> bool:
         if self.connection:
             c = self.connection.cursor()
             get_all_subclasses = lambda cls: set(cls.__subclasses__()).union(
@@ -152,8 +192,8 @@ class Py2SQL:
 
         table_name = type(o).__name__
         attributes = o.__dict__
-        attribute_names = "ObjectId"
-        attributes = [att for att in attributes if not att.startswith('__')]
+        attribute_names = "PythonId"
+        attributes = [a for a in attributes if not a.startswith('__')]
         for i in range(len(attributes)):
             attr = attributes[i]
             var = o.__dict__[attr]
@@ -175,7 +215,7 @@ class Py2SQL:
             s = f"({self._get_sqlite_type_repr(id(obj), queries, table_name, obj_id)}"
             for i in range(len(attributes)):
                 a = attributes[i]
-                repr = self._get_sqlite_type_repr(o.__dict__[a], queries, table_name, obj_id)
+                repr = self._get_sqlite_type_repr(obj.__dict__[a], queries, table_name, obj_id)
                 if repr != "":
                     s += f", {repr}"
             obj_id+=1
@@ -231,7 +271,7 @@ class Py2SQL:
 
 
     # Adds queries for inner object class and for connection table to @inner_table_queries
-    def build_many_to_many_relation(self, inner_table_queries, inner_type, table_name):
+    def _build_many_to_many_relation(self, inner_table_queries, inner_type, table_name):
         inner_name = inner_type.__name__
         inner_query = self._map_class(inner_type)
         self.tables_dict[inner_name].append(table_name)
@@ -240,11 +280,11 @@ class Py2SQL:
         # Creating table for inner object class if needed
         inner_table_queries.append(inner_query)
         # Creating connection table
-        connection_table_query = self.get_connection_table(inner_name, table_name)
+        connection_table_query = self._get_connection_table(inner_name, table_name)
         inner_table_queries.append(connection_table_query)
 
 
-    def get_connection_table(self, inner_name, table_name):
+    def _get_connection_table(self, inner_name, table_name):
         connection_table_query = f"""CREATE TABLE IF NOT EXISTS {table_name}_{inner_name}
         (
             {table_name}Id INTEGER,
@@ -259,14 +299,15 @@ class Py2SQL:
         class_object = class_type()
         attributes = class_object.__dict__
         table_name = class_type.__name__
-
         self.tables_dict[table_name] = []
-        self.table_counts[table_name] = 0
+        if table_name not in self.table_counts[table_name].keys():
+            self.table_counts[table_name] = 0
+            
         inner_table_queries = []
 
         # Every table gets new id by default even if it class had field like Id, ClassId etc.
         table_fields = f"\t[{table_name}Id] INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL"
-        table_fields+=",\n\t\t[ObjectId] INTEGER"
+        table_fields+=",\n\t\t[PythonId] INTEGER"
         for attr in attributes:
             if not attr.startswith('__'):
                 try:
@@ -279,7 +320,7 @@ class Py2SQL:
                             continue
                         else:
                             inner_type = type(attributes[attr][0])
-                            self.build_many_to_many_relation(inner_table_queries, inner_type, table_name)
+                            self._build_many_to_many_relation(inner_table_queries, inner_type, table_name)
 
                     # Actions if we saw inner class object - one to one relation
                     else:
@@ -304,17 +345,32 @@ class Py2SQL:
         return query_string
 
 
-print(py2sql._map_object(class_structure_example.User()))
-print(py2sql._map_object(class_structure_example.User()))
+def main():
+    print("-----TEST-----")
+    py2sql = Py2sqlite3()
+    py2sql.db_connect('test.db')
+    print('DB name: ' + py2sql.db_name())
+    py2sql.save_class(example.User)
+    print("Saved class User.")
+    print("\nTables:")
+    print(py2sql.db_tables())
+    print("\nTable counts:")
+    print(py2sql.db_table_counts())
+    print("\nUser table structure:")
+    print(py2sql.db_table_structure('User'))
+    py2sql.db_update()
+    obj = example.User()
+    py2sql.save_object(obj)
+    print("\nSaved object User.")
+    py2sql.delete_object(obj)
+    print("\nDeleted object User.")
+    py2sql.delete_class(example.MovieList)
+    print("Deleted class User.")
+    print("\nDB size: " + str(py2sql.db_size_Mb())+ " Mb\n")
+    dataframes = py2sql.db_to_dataframes()
+    for df in dataframes:
+        print(df)
+        print(dataframes[df].head(20))
+    py2sql.db_disconnect()
 
-print(class_structure_example.User.__dict__)
-
-py2sql = Py2SQL()
-py2sql.db_connect('my.db')
-py2sql.db_name()
-py2sql.save_class(class_structure_example.User)
-py2sql.db_size_Mb()
-py2sql.db_tables()
-py2sql.db_table_counts()
-py2sql.db_update()
-py2sql.save_object(class_structure_example.User())
+main()
